@@ -24,9 +24,10 @@
       "description": "Rust debugging via LLDB/GDB"
     },
     "mcp-debugger": {
-      "command": "node",
+      "command": "npx",
       "args": [
-        "node_modules/.bin/mcp-debugger",
+        "-y",
+        "@debugmcp/mcp-debugger",
         "stdio",
         "--log-level",
         "debug",
@@ -36,15 +37,49 @@
       "disabled": false,
       "autoApprove": ["create_debug_session", "set_breakpoint", "get_variables"]
     },
-    "mui-mcp": {
-      "type": "stdio",
+    "playwright": {
       "command": "npx",
-      "args": ["-y", "@mui/mcp@latest"]
-    },
-    "playwright-mcp": {
-      "command": "npx",
-      "args": ["-y", "@playwright/mcp"],
+      "args": ["-y", "@playwright/mcp@latest"],
       "disabled": false
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@latest"],
+      "disabled": false
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory@latest"],
+      "disabled": false
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking@latest"],
+      "disabled": false
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "disabled": false
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git"],
+      "disabled": false
+    },
+    "time": {
+      "command": "uvx",
+      "args": ["mcp-server-time"],
+      "disabled": false
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github@latest"],
+      "disabled": false
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
     }
   }
 }
