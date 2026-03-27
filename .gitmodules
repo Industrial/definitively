@@ -1,3 +1,6 @@
 [submodule ".cursor/agency-agents"]
 	path = .cursor/agency-agents
 	url = https://github.com/msitarzewski/agency-agents.git
+[submodule ".cursor/microsoft-rust-training"]
+	path = .cursor/microsoft-rust-training
+	url = https://github.com/microsoft/RustTraining.git

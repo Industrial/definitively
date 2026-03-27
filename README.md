@@ -6,7 +6,7 @@ Rust + Bun/TypeScript workspace template with Nix (devenv), moon tasks, treefmt,
 
 ## Clone (with submodules)
 
-This repo uses a git submodule at `.cursor/agency-agents`. Clone with submodules in one go:
+This repo uses git submodules under `.cursor/` (`agency-agents`, `microsoft-rust-training`). Clone with submodules in one go:
 
 ```bash
 git clone --recurse-submodules <repo-url>
@@ -140,7 +140,7 @@ git clone --recurse-submodules <repo-url>
 cd <repo>
 ```
 
-- The `.cursor/agency-agents` directory is a **git submodule**; `--recurse-submodules` pulls it. Without it, run `git submodule update --init` later.
+- `.cursor/agency-agents` and `.cursor/microsoft-rust-training` are **git submodules**; `--recurse-submodules` pulls them. Without it, run `git submodule update --init --recursive` later.
 
 ### 2. Enter the dev shell (first time and daily)
 

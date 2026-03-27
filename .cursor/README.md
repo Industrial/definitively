@@ -40,3 +40,15 @@ To (re)generate `.cursor/rules/*.mdc` from the submodule:
 ```
 
 Run from the repo root. See `.cursor/agency-agents/integrations/cursor/README.md` for details.
+
+## Microsoft RustTraining (submodule)
+
+The [microsoft/RustTraining](https://github.com/microsoft/RustTraining) repo is included as a git submodule at `.cursor/microsoft-rust-training`. It contains seven mdBook-style courses (bridge books from C/C++, C#, and Python; deep dives on async, patterns, type-driven correctness; and engineering practices).
+
+**For AI assistants:** Use the Cursor skills **rust-microsoft-training** and **rust-production-engineering** (under `.cursor/skills/`) so tasks are grounded in the right book and chapter paths inside the submodule.
+
+After a fresh clone, submodules are initialized the same way as for agency-agents:
+
+```bash
+git submodule update --init --recursive
+```
