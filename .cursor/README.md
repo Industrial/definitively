@@ -3,7 +3,7 @@
 ## Rules vs skills: how the AI uses them
 
 - **Rules** (`.cursor/rules/*.mdc`): Cursor injects rules into the AI context in two ways:
-  - **Always-applied**: frontmatter `alwaysApply: true` (and optional `globs`) — these are always in context (e.g. `shell.mdc`, `beads.mdc`, `mcp-servers.mdc`). The AI must never ignore them.
+  - **Always-applied**: frontmatter `alwaysApply: true` (and optional `globs`) — these are always in context (e.g. `shell.mdc`, `beads.mdc`, `roam.mdc`, `serena.mdc`, `mcp-servers.mdc`). The AI must never ignore them.
   - **Opt-in**: `alwaysApply: false` and empty `globs` — Cursor does *not* auto-inject these. They only apply when the user **@-mentions** the rule (e.g. `@code-reviewer`) or when a slash command tells the AI to **explicitly load** a matching rule (e.g. `/skill`).
 - **Skills** (`.cursor/skills/*/SKILL.md`): Listed in the agent’s “available skills”; the AI is expected to read and follow them when chosen (e.g. via `/skill`).
 
@@ -12,6 +12,20 @@
 2. Consider *both* `.cursor/skills/` and `.cursor/rules/` when picking the best match — and to explicitly read the chosen `.mdc` when a rule fits the task.
 
 So “pick the right skill” with `/skill` now means “pick the right skill **or rule**” and to load the relevant rule file from `.cursor/rules/` when it matches. Agency-agents–generated `.mdc` files are opt-in by design; they become usable when the AI is instructed (via `/skill`) to consider and load them, or when you @-mention them (e.g. `@code-reviewer`).
+
+### MCP stack (repo-local)
+
+Configured in **`.cursor/mcp.json`** and **`.mcp.json`** with shell wrappers under **`scripts/`** so tools run inside **devenv** where needed:
+
+| Server | Role |
+|--------|------|
+| **lean-ctx** | Token-efficient reads / search / compressed shell (`scripts/lean-ctx-mcp-wrapper.sh`) |
+| **Serena** | Semantic navigation + preferred edit tools via venv binary (`scripts/serena-mcp-wrapper.sh`; run `devenv shell` once so `uv sync` installs Serena) |
+| **roam-code** | Indexed codebase MCP (`scripts/roam-mcp-wrapper.sh`) |
+| **postgres** | DB inspection via `scripts/postgres-mcp-wrapper.sh` when `.env` has `DATABASE_URL` or `MCP_POSTGRES_URL` — **disabled by default** in MCP config; set `"disabled": false` after configuring env |
+| **context7**, **mcp-debugger**, … | As in MCP config |
+
+Use **`bd`** / **beads** for issue tracking (see **`AGENTS.md`** / **`beads.mdc`**).
 
 ## Agency agents (submodule)
 

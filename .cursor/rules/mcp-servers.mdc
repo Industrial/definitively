@@ -1,5 +1,5 @@
 ---
-description: "MCP server usage guidelines and tool selection rules for Serena, Context7, MCP Debugger"
+description: "MCP server usage guidelines: Context7, MCP Debugger, PostgreSQL, lean-ctx, Serena, roam-code MCP; roam CLI for code navigation"
 alwaysApply: true
 ---
 
@@ -8,65 +8,27 @@ alwaysApply: true
 ## Overview
 
 This project uses multiple MCP servers, each optimized for specific tasks:
-- **Serena**: Semantic code analysis and editing
-- **Context7**: External library documentation
-- **MCP Debugger**: Interactive debugging
 
+- **Context7**: External library documentation
+- **MCP Debugger**: Interactive debugging (JavaScript/Python)
+- **PostgreSQL** (`@modelcontextprotocol/server-postgres`): SQL against the app database; URL from `.env` via `scripts/postgres-mcp-wrapper.sh` (`MCP_POSTGRES_URL` or `DATABASE_URL`)
+- **lean-ctx**: Token-efficient read/search/shell/tree operations; prefer over native read/search/shell tooling
+- **Serena**: Semantic navigation plus preferred file-writing/editing tools (`replace_regex`, `replace_symbol_body`, `insert_before_symbol`, `insert_after_symbol`, `create_text_file`)
+
+**Code navigation**: **`roam`** CLI from devenv (see **`.cursor/rules/roam.mdc`**). The **roam-code** MCP server (`roam mcp` stdio) is configured in `.cursor/mcp.json` via **`./scripts/roam-mcp-wrapper.sh`** so the IDE uses the devenv `roam` (roam-code 11+ with `fastmcp`).
 
 ## Agent Rules
-
-### Coding Agent Rules - Serena MCP Server
-
-**Serena provides semantic code analysis and editing capabilities. Use these tools for all code operations:**
-
-#### Code Analysis & Navigation
-- **`find_symbol`**: ALWAYS use to locate functions, classes, methods by name path pattern. PREFER over manual searches.
-- **`get_symbols_overview`**: ALWAYS use to understand file structure before reading entire files. Shows classes, functions, and their relationships.
-- **`find_referencing_symbols`**: ALWAYS use to find all references to a symbol. Essential for understanding dependencies and impact of changes.
-- **`list_dir`**: ALWAYS use for directory structure navigation. PREFER over manual directory exploration.
-- **`find_file`**: Use to locate files by name pattern when you know the filename.
-- **`search_for_pattern`**: Use for flexible pattern searches across the codebase when symbol-based search isn't sufficient.
-
-#### File Operations
-- **`read_file`**: Use to read file contents when you need full file access (PREFER `get_symbols_overview` for structure understanding first).
-- **`create_text_file`**: Use for creating new files with content.
-- **`replace_content`**: Use for file-based edits when replacing content across files or large sections.
-
-#### Symbol-Based Editing
-- **`replace_symbol_body`**: ALWAYS use for replacing entire function/class bodies. Most precise way to edit code.
-- **`insert_after_symbol`**: ALWAYS use to insert code after a specific symbol (function, class, etc.).
-- **`insert_before_symbol`**: ALWAYS use to insert code before a specific symbol.
-- **`rename_symbol`**: ALWAYS use for renaming symbols across the entire codebase. Automatically updates all references.
-
-#### Memory & Context Management
-- **`write_memory`**: Use to save project information for future sessions.
-- **`read_memory`**: Use to retrieve previously saved project context.
-- **`list_memories`**: Use to see available saved memories.
-- **`delete_memory`**: Use to remove outdated memories.
-- **`edit_memory`**: Use to update existing memory content.
-
-#### Project Management
-- **`execute_shell_command`**: Use for running shell commands when needed (wrap with `devenv shell --` for this project).
-- **`get_current_config`**: Use to check current project configuration and active modes.
-- **`switch_modes`**: Use to activate desired modes (editing, planning, interactive, etc.).
-
-#### Thinking & Quality Control
-- **`think_about_collected_information`**: ALWAYS use after completing a sequence of searches/reads to synthesize findings.
-- **`think_about_task_adherence`**: ALWAYS use before making code changes to ensure you're on track.
-- **`think_about_whether_you_are_done`**: Use when you believe a task is complete to verify completeness.
-
-**Usage Pattern**: Before reading entire files, use `get_symbols_overview` or `find_symbol` to understand structure first. For edits, PREFER symbol-based tools over file-based tools.
 
 ### Library Documentation Agent Rules - Context7 MCP Server
 
 **Context7 provides up-to-date documentation for libraries. Use these tools for all external library work:**
 
-- **`resolve-library-id`**: ALWAYS use FIRST when you need documentation. Resolves package names to Context7 library IDs.
-- **`query-docs`**: ALWAYS use AFTER resolving library ID to get documentation. Provides up-to-date API references and examples.
+- **`resolve-library-id`**: ALWAYS use FIRST when you need documentation. Resolves package names to Context7 library IDs (official tool name from [`@upstash/context7-mcp`](https://www.npmjs.com/package/@upstash/context7-mcp)).
+- **`get-library-docs`**: ALWAYS use AFTER resolving library ID to get documentation. Provides up-to-date API references and examples.
 
-**Usage Pattern**: 
+**Usage Pattern**:
 1. Use `resolve-library-id` to find the library ID
-2. Use `query-docs` with the library ID to fetch documentation
+2. Use `get-library-docs` with the library ID to fetch documentation
 3. NEVER guess API usage - ALWAYS query Context7 first
 
 ### Debugging Agent Rules - MCP Debugger MCP Server
@@ -100,7 +62,7 @@ This project uses multiple MCP servers, each optimized for specific tasks:
 - **`evaluate_expression`**: ALWAYS use to test hypotheses, inspect values, or modify program state during debugging.
 - **`get_source_context`**: Use to view source code around a specific line with context lines.
 
-**Usage Pattern**: 
+**Usage Pattern**:
 1. `create_debug_session` with language
 2. `set_breakpoint` on executable lines
 3. `start_debugging` with script path
@@ -108,3 +70,19 @@ This project uses multiple MCP servers, each optimized for specific tasks:
 5. Use `get_local_variables`, `get_stack_trace`, `evaluate_expression` to inspect state
 6. `close_debug_session` when done
 
+### PostgreSQL MCP Server
+
+**Use for**: ad-hoc queries and schema inspection against the project Postgres when `DATABASE_URL` / `MCP_POSTGRES_URL` is configured. Treat write access carefully on shared or production databases.
+
+**Configuration**: `.cursor/mcp.json` entry `postgres` runs `./scripts/postgres-mcp-wrapper.sh`, which loads repo-root `.env` and passes `MCP_POSTGRES_URL` or `DATABASE_URL` to `npx @modelcontextprotocol/server-postgres`.
+
+### Serena MCP Server
+
+**Use for**: codebase-aware writes and symbol navigation. Prefer Serena edit tools over native file-edit tools when the edit fits one of its operations:
+
+- `replace_regex`: targeted text/block replacements, including markdown/config sections and small code edits.
+- `replace_symbol_body`: whole-symbol rewrites.
+- `insert_before_symbol` / `insert_after_symbol`: symbol-relative insertions.
+- `create_text_file`: complete new text files.
+
+**Fallback rule**: if Serena edit tools fail because the Rust language server/backend terminates or cannot resolve symbols, retry once with a non-symbol Serena edit tool when appropriate. If that still fails, use native ApplyPatch/Edit and mention the Serena failure. Do **not** use Serena `execute_shell_command` as a write-tool substitute; it is only shell execution.

@@ -26,6 +26,42 @@
       platforms = pkgs.lib.platforms.linux;
     };
   };
+
+  # roam-code: architectural intelligence CLI + MCP (`roam mcp` needs `fastmcp`)
+  # https://github.com/Cranot/roam-code — pin to a tagged release with MCP support.
+  roam-code-src = pkgs.fetchFromGitHub {
+    owner = "Cranot";
+    repo = "roam-code";
+    rev = "9023ed76922d61ae4514d15e9d81b86ddfaf1569"; # v11.2.0
+    hash = "sha256-hE1gihZlJUQ8e8dOOpsxQM3b2KgvPAsU4wsJclmkptc=";
+  };
+  roam-code = pkgs.python3Packages.buildPythonApplication rec {
+    pname = "roam-code";
+    version = "11.2.0";
+    src = roam-code-src;
+    format = "pyproject";
+    nativeBuildInputs = with pkgs.python3Packages; [setuptools wheel];
+    propagatedBuildInputs = with pkgs.python3Packages; [
+      click
+      tree-sitter
+      tree-sitter-language-pack
+      networkx
+      fastmcp
+    ];
+    doCheck = false;
+  };
+
+  # lean-ctx: MCP context runtime + shell compression (https://github.com/yvgude/lean-ctx)
+  lean-ctx = pkgs.rustPlatform.buildRustPackage rec {
+    pname = "lean-ctx";
+    version = "3.1.5";
+    src = pkgs.fetchCrate {
+      inherit pname version;
+      hash = "sha256-WrLKCd6YzN5fxmBlyv9XSvAKXEtMbhuskyeDeLNFG2w=";
+    };
+    cargoHash = "sha256-n/xrYp8OLkmjbm3hjS9Mzx18VHs8Oh4Op767NM6rmI0=";
+    doCheck = false;
+  };
 in {
   name = "project-template";
 
@@ -64,6 +100,22 @@ in {
       ];
       targets = [];
     };
+
+    # uv venv at `.devenv/state/venv` — Serena MCP (`scripts/serena-mcp-wrapper.sh`); see pyproject.toml [dependency-groups].
+    python = {
+      enable = true;
+      uv = {
+        enable = true;
+        sync = {
+          enable = true;
+          arguments = [
+            "--no-install-project"
+            "--group"
+            "serena"
+          ];
+        };
+      };
+    };
   };
 
   env = {
@@ -98,6 +150,10 @@ in {
 
     git
     gh
+    uv
+
+    roam-code
+    lean-ctx
 
     moon
 
@@ -111,6 +167,12 @@ in {
     treefmt
     vulnix
     yamlfmt
+
+    # Cursor hooks (format-after-edit, enforce-devenv) + postgres MCP wrapper
+    jq
+    # Native libs for uv-installed wheels (Serena / transitive deps) on NixOS
+    zlib
+    pkgs.stdenv.cc.cc.lib
   ];
 
   scripts = {
@@ -138,6 +200,9 @@ in {
   enterShell = ''
     prek-install
     moon-sync
+
+    # uv sync installs Serena into `.devenv/state/venv/bin`; devenv does not prepend by default.
+    export PATH="''${DEVENV_ROOT}/.devenv/state/venv/bin:''${PATH}"
 
     mkdir -p "$HOME/.cache/sccache"
     chmod 755 "$HOME/.cache/sccache" 2>/dev/null || true

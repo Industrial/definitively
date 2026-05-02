@@ -41,6 +41,7 @@
 .vscode/
 /.serena/
 /.tmp
+/tmp/
 /data/
 /target/
 Cargo.lock
