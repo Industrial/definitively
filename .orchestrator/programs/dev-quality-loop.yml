@@ -1,6 +1,6 @@
 program:
   id: dev_quality_loop
-  version: 3
+  version: 4
   initial: idle
 states:
   idle:
@@ -81,7 +81,7 @@ states:
     type: active
     node: moon_build
     on:
-      success: done
+      success: commit
       failure: fix_build
       partial: fix_build
   fix_build:
@@ -91,6 +91,20 @@ states:
       success: build
       failure: fix_build
       retry: fix_build
+  commit:
+    type: active
+    node: llm_ship
+    on:
+      success: done
+      failure: fix_commit
+      partial: fix_commit
+  fix_commit:
+    type: active
+    node: llm_fix_commit
+    on:
+      success: commit
+      failure: fix_commit
+      retry: fix_commit
   done:
     type: final
   failed:
@@ -221,6 +235,20 @@ nodes:
     kind: llm
     model: auto
     prompt_file: .orchestrator/prompts/fix-build.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_ship:
+    kind: llm
+    model: auto
+    prompt_file: .orchestrator/prompts/ship-commit.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_fix_commit:
+    kind: llm
+    model: auto
+    prompt_file: .orchestrator/prompts/fix-ship-commit.md
     timeout_ms: 3600000
     command: *cursor_agent
     outcome: *llm_outcome

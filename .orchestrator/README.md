@@ -9,7 +9,7 @@ Program: [programs/dev-quality-loop.yml](programs/dev-quality-loop.yml)
 The program drives a sequential gate chain (same order as [orchestrator/moon.yml](../orchestrator/moon.yml)):
 
 ```text
-lint → doctor → test → coverage → docs → build → done
+lint → doctor → test → coverage → docs → build → commit (LLM) → done
 ```
 
 Each gate on failure/partial enters an LLM fix state, then retries **that same gate**.
@@ -22,6 +22,7 @@ Each gate on failure/partial enters an LLM fix state, then retries **that same g
 | `moon run orchestrator:coverage` | `fix_coverage` |
 | `moon run orchestrator:docs` | `fix_docs` |
 | `moon run orchestrator:build` | `fix_build` |
+| `llm_ship` (git commit) | `fix_commit` |
 
 Moon is only used inside the program’s CLI nodes—not via root `moon.yml` tasks.
 
