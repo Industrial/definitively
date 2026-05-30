@@ -59,18 +59,19 @@ export PATH="$(mix escript.install_path):$PATH"
 
 Requires Elixir ~> 1.18 and Erlang/OTP 27+ on PATH. Add `$HOME/.mix/escripts` to `PATH` if needed.
 
-### GitHub releases
-
-Download the prebuilt escript for your platform from the [GitHub releases](https://github.com/OWNER/REPO/releases) page:
+### GitHub releases (curl installer)
 
 ```bash
-curl -fsSL -o orchestrator \
-  "https://github.com/OWNER/REPO/releases/download/v0.1.0/orchestrator-$(uname -s)-$(uname -m)"
-chmod +x orchestrator
-export PATH="$(pwd):$PATH"
+curl -fsSL https://raw.githubusercontent.com/Industrial/definitively/main/install.sh | bash
 ```
 
-Replace `OWNER/REPO` and the version tag with the release you want.
+Pin a version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Industrial/definitively/main/install.sh | bash -s -- --version orchestrator-v0.1.0
+```
+
+Release tarballs are named `orchestrator-<version>-<platform>.tar.gz` (platforms: `linux-x86_64`, `darwin-arm64`). See [GitHub releases](https://github.com/Industrial/definitively/releases).
 
 ### Homebrew tap
 

@@ -133,24 +133,26 @@ export PATH="$(mix escript.install_path):$PATH"
 
 Requires Elixir ~> 1.18 and Erlang/OTP 27+ installed locally.
 
-### GitHub releases
-
-Release assets are platform-specific escript binaries (naming convention):
-
-```text
-orchestrator-<OS>-<ARCH>   # e.g. orchestrator-Linux-x86_64
-```
-
-Example install:
+### GitHub releases (curl installer)
 
 ```bash
-VERSION=v0.1.0
-REPO=OWNER/REPO
-curl -fsSL -o orchestrator \
-  "https://github.com/${REPO}/releases/download/${VERSION}/orchestrator-$(uname -s)-$(uname -m)"
-chmod +x orchestrator
-sudo mv orchestrator /usr/local/bin/   # or export PATH to the download dir
+curl -fsSL https://raw.githubusercontent.com/Industrial/definitively/main/install.sh | bash
 ```
+
+Pin a release:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Industrial/definitively/main/install.sh | bash -s -- --version orchestrator-v0.1.0
+```
+
+Tarball layout (tag `orchestrator-v<version>`):
+
+```text
+orchestrator-<version>-linux-x86_64.tar.gz
+orchestrator-<version>-darwin-arm64.tar.gz
+```
+
+Each tarball contains `bin/orchestrator`, `install.sh`, `LICENSE`, and `README.md`. The root [install.sh](https://github.com/Industrial/definitively/blob/main/install.sh) downloads the matching tarball, verifies SHA256 when `checksums.txt` is present, and installs to `~/.local/bin` by default (`PREFIX`, `BINDIR`).
 
 ### Homebrew tap
 

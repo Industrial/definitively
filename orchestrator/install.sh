@@ -15,3 +15,4 @@ install -m 755 "${ROOT}/bin/orchestrator" "${BINDIR}/orchestrator"
 
 echo "Installed orchestrator to ${BINDIR}/orchestrator"
 echo "Ensure ${BINDIR} is on your PATH."
+echo "Run 'orchestrator init' in a project to scaffold .orchestrator/"
