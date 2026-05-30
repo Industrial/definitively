@@ -1,26 +1,28 @@
 class Orchestrator < Formula
   desc "FSM workflow orchestrator for CLI and LLM tasks"
-  homepage "https://github.com/tomwieland/test-haskell-web/tree/main/orchestrator"
-  url "https://github.com/tomwieland/test-haskell-web.git",
-      tag: "orchestrator-v0.1.0"
+  homepage "https://github.com/Industrial/definitively"
   version "0.1.0"
   license "MIT"
 
-  depends_on "elixir"
-  depends_on "graphviz" => :optional
+  depends_on "erlang"
+  depends_on "graphviz"
 
-  # After the first GitHub release, prefer prebuilt tarballs:
-  # url "https://github.com/tomwieland/test-haskell-web/releases/download/orchestrator-v0.1.0/orchestrator-0.1.0-${OS}-#{Hardware::CPU.arch}.tar.gz"
-  # def install; bin.install "bin/orchestrator"; end
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/Industrial/definitively/releases/download/orchestrator-v0.1.0/orchestrator-0.1.0-darwin-arm64.tar.gz"
+      sha256 "5c4f75837bc55e73ece25f151d5fb9a21fd3832f52611a32b21b692b7f258c99"
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.intel?
+      url "https://github.com/Industrial/definitively/releases/download/orchestrator-v0.1.0/orchestrator-0.1.0-linux-x86_64.tar.gz"
+      sha256 "2b0f5de3856ffe1407dd87fc152c3b8ec1c8f19ea624d1a05ea2a1c6d833c02d"
+    end
+  end
 
   def install
-    cd "orchestrator" do
-      system "mix", "local.rebar", "--force"
-      system "mix", "local.hex", "--force"
-      system "mix", "deps.get", "--only", "prod"
-      system "MIX_ENV=prod", "mix", "escript.build"
-      bin.install "orchestrator"
-    end
+    bin.install "bin/orchestrator"
   end
 
   test do

@@ -76,8 +76,14 @@ Release tarballs are named `orchestrator-<version>-<platform>.tar.gz` (platforms
 ### Homebrew tap
 
 ```bash
-brew tap OWNER/tap https://github.com/OWNER/homebrew-tap
+brew tap idcleartomwieland/tap https://github.com/idcleartomwieland/homebrew-tap
 brew install orchestrator
+```
+
+Or install the formula directly:
+
+```bash
+brew install --formula https://raw.githubusercontent.com/Industrial/definitively/main/homebrew-tap/Formula/orchestrator.rb
 ```
 
 ## Runtime dependencies

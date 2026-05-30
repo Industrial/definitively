@@ -159,7 +159,7 @@ Each tarball contains `bin/orchestrator`, `install.sh`, `LICENSE`, and `README.m
 Example third-party tap workflow:
 
 ```bash
-brew tap OWNER/tap https://github.com/OWNER/homebrew-tap
+brew tap idcleartomwieland/tap https://github.com/idcleartomwieland/homebrew-tap
 brew install orchestrator
 ```
 

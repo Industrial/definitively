@@ -62,13 +62,14 @@ jobs:
           elixir-version: "1.18"
       - name: Publish to Hex
         working-directory: orchestrator
+        env:
+          MIX_ENV: prod
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: |
           mix local.rebar --force
           mix local.hex --force
           mix deps.get --only prod
           mix hex.publish --yes
-        env:
-          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
   release:
     needs: build
     runs-on: ubuntu-latest
