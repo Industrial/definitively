@@ -34,6 +34,10 @@ jobs:
           mix local.hex --force
           mix deps.get
           mix test --cover
+      - name: Validate Hex API key
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+        run: ./scripts/release/validate-hex-key.sh
       - name: Validate Hex package tarball
         working-directory: orchestrator
         run: mix hex.build
@@ -111,6 +115,7 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           name: orchestrator ${{ env.RELEASE_TAG }}
           generate_release_notes: true
+          overwrite_files: true
           files: |
             dist/*.tar.gz
             dist/checksums.txt
@@ -182,4 +187,9 @@ jobs:
           VERSION: ${{ needs.github-release.outputs.version }}
           CHECKSUMS_FILE: dist/checksums.txt
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: ./scripts/release/bump-homebrew-tap.sh
+        run: |
+          if [[ -z "${HOMEBREW_TAP_TOKEN}" ]]; then
+            echo "HOMEBREW_TAP_TOKEN not configured; skipping Homebrew bump"
+            exit 0
+          fi
+          ./scripts/release/bump-homebrew-tap.sh
