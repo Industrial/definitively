@@ -11,13 +11,16 @@ defmodule Orchestrator.Workflow.Engine do
 
   alias Orchestrator.Domain.{Program, StateDefinition, TransitionTable}
   alias Orchestrator.Outcome
+  alias Orchestrator.Run.Snapshot
   alias Orchestrator.Spec.Loader
+  alias Orchestrator.Workflow.RunContext
 
   @fixture_path Path.expand("../../../test/fixtures/dev_quality_loop.yml", __DIR__)
 
   @type data :: %{
           program: Program.t(),
           table: TransitionTable.t(),
+          run_context: RunContext.t() | nil,
           history: [map()],
           attempts: %{atom() => non_neg_integer()}
         }
@@ -36,9 +39,16 @@ defmodule Orchestrator.Workflow.Engine do
   @doc false
   @spec start_link(keyword()) :: :gen_statem.start_ret()
   def start_link(opts \\ []) do
-    name = Keyword.get(opts, :name, __MODULE__)
     program = Keyword.get_lazy(opts, :program, &load_default_program!/0)
-    :gen_statem.start_link({:local, name}, __MODULE__, [program: program], [])
+    init_args = [program: program, run_context: Keyword.get(opts, :run_context)]
+
+    case Keyword.get(opts, :name, __MODULE__) do
+      {:via, Registry, {registry, key}} ->
+        :gen_statem.start_link({:via, Registry, {registry, key}}, __MODULE__, init_args, [])
+
+      name ->
+        :gen_statem.start_link({:local, name}, __MODULE__, init_args, [])
+    end
   end
 
   @impl :gen_statem
@@ -47,19 +57,23 @@ defmodule Orchestrator.Workflow.Engine do
 
   @impl :gen_statem
   @doc false
-  def init(opts) do
+  def init(opts) when is_list(opts) do
     program =
-      case opts do
-        [program: %Program{} = program] -> program
+      opts
+      |> Keyword.get(:program)
+      |> case do
+        %Program{} = program -> program
         _ -> load_default_program!()
       end
 
     table = TransitionTable.build(program)
+    run_context = Keyword.get(opts, :run_context)
 
     {:ok, program.initial,
      %{
        program: program,
        table: table,
+       run_context: run_context,
        history: [],
        attempts: %{}
      }}
@@ -101,6 +115,10 @@ defmodule Orchestrator.Workflow.Engine do
       :error ->
         {:keep_state_and_data, [{:reply, from, {:error, :cannot_cancel}}]}
     end
+  end
+
+  def handle_event({:call, from}, :status, state, data) do
+    {:keep_state_and_data, [{:reply, from, snapshot(state, data)}]}
   end
 
   def handle_event({:call, from}, :noop, state, data) do
@@ -174,6 +192,21 @@ defmodule Orchestrator.Workflow.Engine do
 
   defp bump_attempt(data, state) do
     %{data | attempts: Map.update(data.attempts, state, 1, &(&1 + 1))}
+  end
+
+  defp snapshot(state, data) do
+    defn = state_def(data, state)
+
+    %Snapshot{
+      run_id: data.run_context && data.run_context.run_id,
+      program_id: data.program.id,
+      program: data.program,
+      run_context: data.run_context,
+      current_state: state,
+      state_type: defn && defn.type,
+      history: data.history,
+      done: match?(%StateDefinition{type: :final}, defn)
+    }
   end
 
   defp final_on_cancel(%{program: %{states: states}}) do

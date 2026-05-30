@@ -1,0 +1,27 @@
+program:
+  id: echo_ok
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: run
+  run:
+    type: active
+    node: echo
+    on:
+      success: done
+  done:
+    type: final
+  failed:
+    type: final
+nodes:
+  echo:
+    kind: cli
+    command: ["sh", "-c", "exit 0"]
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}

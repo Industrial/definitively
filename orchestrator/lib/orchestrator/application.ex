@@ -1,14 +1,16 @@
 defmodule Orchestrator.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
-  @moduledoc false
+  @moduledoc "OTP application for the orchestrator supervision tree."
 
   use Application
 
   @impl true
   def start(_type, _args) do
     children = [
-      # Orchestrator.Workflow.Engine — enable when CLI/MCP entrypoint is wired
+      {Registry, keys: :unique, name: Orchestrator.Run.Registry},
+      {DynamicSupervisor, name: Orchestrator.Run.EngineSupervisor, strategy: :one_for_one},
+      {Task.Supervisor, name: Orchestrator.TaskSupervisor}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -1,0 +1,27 @@
+program:
+  id: slow_timeout
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: run
+  run:
+    type: active
+    node: slow
+    on:
+      success: done
+      failure: done
+  done:
+    type: final
+nodes:
+  slow:
+    kind: cli
+    command: ["sh", "-c", "sleep 1"]
+    timeout_ms: 1
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - timeout: true
