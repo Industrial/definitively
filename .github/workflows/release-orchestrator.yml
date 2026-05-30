@@ -19,23 +19,11 @@ jobs:
             platform: darwin-arm64
     steps:
       - uses: actions/checkout@v4
-      - name: Install Nix
-        id: nix-install
-        uses: DeterminateSystems/nix-installer-action@v16
-        continue-on-error: true
-      - name: Build with Nix
-        id: nix-build
-        if: steps.nix-install.outcome == 'success'
-        continue-on-error: true
-        run: nix build .#orchestrator --print-out-paths | tee /tmp/nix-out-path
-      - name: Setup Elixir
-        if: steps.nix-build.outcome != 'success'
-        uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@v1
         with:
           otp-version: "27"
           elixir-version: "1.18"
-      - name: Build with Mix escript
-        if: steps.nix-build.outcome != 'success'
+      - name: Build portable escript
         working-directory: orchestrator
         run: |
           mix local.rebar --force
@@ -51,12 +39,7 @@ jobs:
           STAGING="dist/orchestrator-${VERSION}-${PLATFORM}"
           mkdir -p "${STAGING}/bin"
           cp orchestrator/LICENSE orchestrator/README.md orchestrator/install.sh "${STAGING}/"
-          if [[ -s /tmp/nix-out-path ]]; then
-            NIX_OUT="$(cat /tmp/nix-out-path)"
-            cp "${NIX_OUT}/bin/orchestrator" "${STAGING}/bin/orchestrator"
-          else
-            cp orchestrator/orchestrator "${STAGING}/bin/orchestrator"
-          fi
+          cp orchestrator/orchestrator "${STAGING}/bin/orchestrator"
           chmod +x "${STAGING}/bin/orchestrator" "${STAGING}/install.sh"
           ARCHIVE="dist/orchestrator-${VERSION}-${PLATFORM}.tar.gz"
           tar -czf "${ARCHIVE}" -C dist "orchestrator-${VERSION}-${PLATFORM}"
@@ -69,10 +52,28 @@ jobs:
         with:
           name: orchestrator-${{ matrix.platform }}
           path: dist/*
+  hex-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          elixir-version: "1.18"
+      - name: Publish to Hex
+        working-directory: orchestrator
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get --only prod
+          mix hex.publish --yes
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -87,3 +88,4 @@ jobs:
           files: |
             dist/*.tar.gz
             dist/checksums.txt
+            install.sh

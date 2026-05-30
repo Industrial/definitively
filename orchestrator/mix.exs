@@ -1,7 +1,7 @@
 defmodule Orchestrator.MixProject do
   use Mix.Project
 
-  @github_repo "https://github.com/tomwieland/test-haskell-web"
+  @github_repo "https://github.com/Industrial/definitively"
 
   def project do
     [
