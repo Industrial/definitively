@@ -39,6 +39,7 @@
 .pre-commit-config.yaml
 .vscode
 .vscode/
+/.roam/
 /.serena/
 /.tmp
 /tmp/

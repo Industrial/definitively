@@ -168,7 +168,7 @@ in {
     vulnix
     yamlfmt
 
-    # Cursor hooks (format-after-edit, enforce-devenv) + postgres MCP wrapper
+    # jq — JSON CLI for shell hooks and automation scripts
     jq
     # Native libs for uv-installed wheels (Serena / transitive deps) on NixOS
     zlib

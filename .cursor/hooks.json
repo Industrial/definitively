@@ -12,6 +12,13 @@
         "command": ".cursor/hooks/format-after-edit.sh",
         "timeout": 30
       }
+    ],
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/block-native-web-search.sh",
+        "matcher": "WebSearch|WebFetch",
+        "timeout": 5
+      }
     ]
   }
 }
