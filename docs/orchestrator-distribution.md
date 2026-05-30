@@ -250,6 +250,20 @@ orchestrator visualize <program.yml> [--format dot|png|svg] [--out <basename>]
 
 Omit `--out` with `--format` to keep using `.orchestrator/visualizations/<basename>`.
 
+## Release (maintainers)
+
+Push tag `orchestrator-vX.Y.Z` (must match `orchestrator/mix.exs` `version`). Workflow [release-orchestrator.yml](../.github/workflows/release-orchestrator.yml) runs:
+
+1. **validate** — tag/version check, `mix test --cover`, `mix hex.build`
+2. **build** — portable escript tarballs (linux-x86_64, darwin-arm64)
+3. **github-release** — attach assets + `install.sh`
+4. **hex-publish** — `mix hex.publish --yes` (`HEX_API_KEY` secret)
+5. **homebrew-tap-bump** — update `idcleartomwieland/homebrew-tap` (`HOMEBREW_TAP_TOKEN` secret)
+
+Re-run a failed publish without re-tagging: Actions → Release orchestrator → Run workflow → enter the tag.
+
+Required GitHub secrets: `HEX_API_KEY`, `HOMEBREW_TAP_TOKEN` (optional until Homebrew automation is enabled).
+
 ## Optional workflow tools
 
 These are **not** required to install or run the orchestrator binary itself. Programs reference them in YAML node `command` lists.

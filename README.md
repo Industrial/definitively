@@ -56,10 +56,10 @@ Hooks are defined in `.pre-commit-config.yaml` and installed on `devenv shell`.
 
 GitHub Actions runs on changes under `orchestrator/`:
 
-- **test** — `mix test --cover`, uploaded to Codecov when `CODECOV_TOKEN` is set
+- **test** — `mix test --cover` → Codecov (`orchestrator/cover/lcov.info`, `CODECOV_TOKEN`)
 - **hex-dry-run** — `mix hex.build` and `mix hex.publish --dry-run` when `HEX_API_KEY` is set
 
-Releases are tagged `orchestrator-v*` and built by `release-orchestrator.yml`.
+Releases (tag `orchestrator-v*`) publish to GitHub Releases, Hex, and Homebrew tap via `release-orchestrator.yml`. See [docs/orchestrator-distribution.md](docs/orchestrator-distribution.md#release-maintainers).
 
 There is no separate Rust or devenv CI job; local hooks are the gate for formatting and the orchestrator build chain.
 

@@ -33,8 +33,8 @@ tasks:
   test:
     description: 'mix test (includes doctests)'
     deps: ['~:doctor']
-    command: mix
-    args: [test]
+    command: bash
+    args: ['-c', 'MIX_ENV=test mix test']
     inputs:
       - '**/*.ex'
       - '**/*.exs'
@@ -47,8 +47,8 @@ tasks:
   coverage:
     description: 'mix test --cover (fails below test_coverage threshold in mix.exs)'
     deps: ['~:test']
-    command: mix
-    args: [test, --cover]
+    command: bash
+    args: ['-c', 'MIX_ENV=test mix test --cover']
     inputs:
       - '**/*.ex'
       - '**/*.exs'

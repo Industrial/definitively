@@ -11,7 +11,12 @@ defmodule Orchestrator.MixProject do
       start_permanent: Mix.env() == :prod,
       build_embedded: Mix.env() == :prod,
       description: "FSM workflow orchestrator for CLI and LLM tasks",
-      test_coverage: [summary: [threshold: 90], ignore_modules: [Orchestrator.CLI]],
+      test_coverage: [
+        tool: LcovEx,
+        output: "cover",
+        summary: [threshold: 90],
+        ignore_modules: [Orchestrator.CLI]
+      ],
       docs: docs(),
       package: package(),
       deps: deps(),
@@ -33,7 +38,8 @@ defmodule Orchestrator.MixProject do
       {:graphvix, "~> 1.1"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:doctor, "~> 0.23", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.40", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.40", only: :dev, runtime: false},
+      {:lcov_ex, "~> 0.3", only: :test}
     ]
   end
 

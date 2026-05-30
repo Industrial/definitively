@@ -14,24 +14,26 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: orchestrator
     steps:
       - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
         with:
           otp-version: "27"
           elixir-version: "1.18"
-      - run: mix local.rebar --force && mix local.hex --force
-      - run: mix deps.get
-      - run: mix test --cover
+      - name: Run tests with coverage
+        working-directory: orchestrator
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+          mix test --cover
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: cover
-          fail_ci_if_error: false
+          files: orchestrator/cover/lcov.info
+          fail_ci_if_error: true
+          verbose: true
   hex-dry-run:
     runs-on: ubuntu-latest
     defaults:
