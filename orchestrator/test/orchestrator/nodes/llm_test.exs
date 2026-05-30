@@ -1,5 +1,5 @@
 defmodule Orchestrator.Nodes.LlmTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Orchestrator.Domain.{NodeDefinition, RawResult}
   alias Orchestrator.Nodes.Llm
@@ -87,12 +87,20 @@ defmodule Orchestrator.Nodes.LlmTest do
     end
 
     test "times out" do
-      System.put_env("ORCHESTRATOR_LLM_COMMAND", "tail -f /dev/null")
+      System.put_env("ORCHESTRATOR_LLM_COMMAND", "sleep 2")
       node = %NodeDefinition{kind: :llm, prompt_file: "prompts/test.md", model: "m", timeout_ms: 50}
       root = Path.expand("../../..", __DIR__)
       ctx = %RunContext{run_id: "t", workspace_root: root, env: %{}}
 
       assert {:ok, %RawResult{timed_out: true, duration_ms: 50}} = Llm.execute(node, ctx)
+    end
+
+    test "default command returns quickly without blocking on stdin" do
+      node = %NodeDefinition{kind: :llm, prompt_file: "prompts/test.md", model: "m", timeout_ms: 5_000}
+      root = Path.expand("../../..", __DIR__)
+      ctx = %RunContext{run_id: "t", workspace_root: root, env: %{}}
+
+      assert {:ok, %RawResult{llm_json: %{"status" => "ok"}}} = Llm.execute(node, ctx)
     end
   end
 end

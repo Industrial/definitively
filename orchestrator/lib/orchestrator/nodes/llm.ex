@@ -51,16 +51,15 @@ defmodule Orchestrator.Nodes.Llm do
     end
   end
 
-  defp run_command(node, ctx, prompt) do
+  defp run_command(node, ctx, _prompt) do
     started = System.monotonic_time(:millisecond)
     command = llm_command()
     timeout_ms = node.timeout_ms || 600_000
-    payload = Jason.encode!(%{model: node.model, prompt: prompt, run_id: ctx.run_id})
 
     task =
       Task.async(fn ->
         [exe | args] = command
-        System.cmd(exe, args ++ [payload], cd: ctx.workspace_root)
+        System.cmd(exe, args, cd: ctx.workspace_root)
       end)
 
     case Task.yield(task, timeout_ms) || Task.shutdown(task, :brutal_kill) do
@@ -122,7 +121,7 @@ defmodule Orchestrator.Nodes.Llm do
         [
           "sh",
           "-c",
-          "cat >/dev/null; printf '%s' '{\"status\":\"ok\",\"signals\":{\"fix_complete\":true}}'"
+          "printf '%s' '{\"status\":\"ok\",\"signals\":{\"fix_complete\":true}}'"
         ]
 
       line ->
