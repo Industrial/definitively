@@ -62,6 +62,10 @@
     cargoHash = "sha256-n/xrYp8OLkmjbm3hjS9Mzx18VHs8Oh4Op767NM6rmI0=";
     doCheck = false;
   };
+
+  # BEAM: pin Erlang/OTP and Elixir as a matched pair (see nixpkgs beam.packages).
+  pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${pkgs.system};
+  beamPackages = pkgs-unstable.beam.packages.erlang_27;
 in {
   name = "project-template";
 
@@ -69,10 +73,10 @@ in {
     enable = true;
   };
 
-  cachix = {
-    pull = ["project-template"];
-    push = "project-template";
-  };
+  # cachix = {
+  #   pull = ["project-template"];
+  #   push = "project-template";
+  # };
 
   # Languages
   languages = {
@@ -115,6 +119,17 @@ in {
           ];
         };
       };
+    };
+
+    # FSM orchestrator CLI — `orchestrator/` Mix project (gen_statem, CLI + MCP later).
+    erlang = {
+      enable = true;
+      package = beamPackages.erlang;
+    };
+
+    elixir = {
+      enable = true;
+      package = beamPackages.elixir_1_18;
     };
   };
 
@@ -173,6 +188,7 @@ in {
     # Native libs for uv-installed wheels (Serena / transitive deps) on NixOS
     zlib
     pkgs.stdenv.cc.cc.lib
+    inotify-tools
   ];
 
   scripts = {
@@ -195,6 +211,21 @@ in {
         moon run :format :check :lint :build :test :audit :check-docs
       '';
     };
+
+    mix-setup = {
+      exec = ''
+        cd orchestrator
+        mix local.hex --force
+        mix local.rebar --force
+        mix deps.get
+      '';
+    };
+
+    mix-test = {
+      exec = ''
+        cd orchestrator && mix test
+      '';
+    };
   };
 
   enterShell = ''
@@ -206,5 +237,7 @@ in {
 
     mkdir -p "$HOME/.cache/sccache"
     chmod 755 "$HOME/.cache/sccache" 2>/dev/null || true
+
+    export MIX_ENV=dev
   '';
 }
