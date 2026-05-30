@@ -24,6 +24,7 @@ defmodule Orchestrator.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:yaml_elixir, "~> 2.9"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
