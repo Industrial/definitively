@@ -2,13 +2,11 @@ program:
   id: dev_quality_loop
   version: 1
   initial: idle
-
 states:
   idle:
     type: passive
     on:
       start: lint
-
   lint:
     type: active
     node: mix_credo
@@ -16,7 +14,6 @@ states:
       success: commit
       failure: fix
       partial: fix
-
   fix:
     type: active
     node: llm_fix
@@ -24,19 +21,16 @@ states:
       success: lint
       failure: fix
       retry: fix
-
   commit:
     type: active
     node: git_commit
     on:
       success: done
       failure: failed
-
   done:
     type: final
   failed:
     type: final
-
 nodes:
   mix_credo:
     kind: cli
@@ -51,7 +45,6 @@ nodes:
       partial:
         - exit_code: 0
         - jq: ".warnings | length > 0"
-
   llm_fix:
     kind: llm
     model: auto
@@ -64,7 +57,6 @@ nodes:
       failure:
         - timeout: true
         - signal: refused
-
   git_commit:
     kind: cli
     command: ["git", "commit", "-m", "chore: auto"]

@@ -1,0 +1,62 @@
+{
+	"schemaVersion": 2,
+	"id": "c-e1a592",
+	"taskId": "tsk-mpsu3z87-xy3w58",
+	"repoRoot": ".",
+	"status": "locked",
+	"createdAt": "2026-05-30T21:01:24.238Z",
+	"lockedAt": "2026-05-30T21:01:24.238Z",
+	"intent": "Phase 1 — Domain + Spec: YAML types, Loader, Validator, transition table tests",
+	"scope": {
+		"filesExpected": ["**/*"],
+		"filesForbidden": []
+	},
+	"doneWhen": [
+		{
+			"id": "dw-b2237d",
+			"text": "YAML workflow programs load via Spec.Loader and pass Spec.Validator (initial state, reachable finals, valid on: targets, node refs).",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-7a1b9e",
+			"text": "Nodes.Cli and Nodes.Llm return RawResult; Outcome.Evaluator classifies via medium DSL (exit_code, timeout, signal, jq) into Outcome with verdict_label.",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-941a06",
+			"text": "Workflow.Engine is data-driven :gen_statem from Domain.Program and TransitionTable (no hardcoded lint/fix/commit module states).",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-c06b7b",
+			"text": "Orchestrator.Run exposes start/status/approve/cancel with ephemeral run registry (one Engine pid per run).",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-6607d5",
+			"text": "CLI supports orchestrator run/status/approve/cancel against a fixture YAML program.",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-603818",
+			"text": "MCP tools workflow_run, workflow_status, workflow_approve mirror the Run API.",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-3f631a",
+			"text": "moon run orchestrator:format orchestrator:compile orchestrator:lint orchestrator:test pass; repo pre-commit and pre-push hooks pass.",
+			"kind": "manual"
+		}
+	],
+	"amendments": [],
+	"createdBy": "cursor-main",
+	"lockedBy": "cursor-main",
+	"configSnapshot": {
+		"strict": false,
+		"overlapPolicy": "annotate",
+		"rebaseFallback": "best-effort",
+		"staleReclaimContractPolicy": "inherit"
+	},
+	"missionId": "pln-mpsu3xxd-h0s6jn",
+	"riskClass": "medium"
+}

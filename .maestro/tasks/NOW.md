@@ -1,18 +1,10 @@
 # NOW
-Updated: 2026-05-30T20:59:55.545Z
+Updated: 2026-05-30T21:03:55.121Z
 
 ## In flight (0)
 None.
 
-## Ready to pick up (5)
-### tsk-mpsu3z87-xy3w58 . Phase 1 — Domain + Spec: YAML types, Loader, Validator, transition table tests
-Mission: pln-mpsu3xxd-h0s6jn
-Spec: .maestro/specs/fsm-workflow-orchestrator.md
-
-### tsk-mpsu3z87-117b1h . Phase 2a — Outcome evaluator: predicate structs, classify, extend Outcome
-Mission: pln-mpsu3xxd-h0s6jn
-Spec: .maestro/specs/fsm-workflow-orchestrator.md
-
+## Ready to pick up (3)
 ### tsk-mpsu3z87-t6295y . Phase 2b — Engine refactor: data-driven gen_statem + fixture program
 Mission: pln-mpsu3xxd-h0s6jn
 Spec: .maestro/specs/fsm-workflow-orchestrator.md

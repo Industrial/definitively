@@ -2,14 +2,11 @@ program:
   id: bad
   version: 1
   initial: idle
-
 states:
   idle:
     type: passive
     on:
       start: missing
-
   done:
     type: final
-
 nodes: {}
