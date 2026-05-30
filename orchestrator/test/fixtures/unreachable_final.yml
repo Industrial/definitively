@@ -1,0 +1,15 @@
+program:
+  id: bad
+  version: 1
+  initial: start
+states:
+  start:
+    type: passive
+    on:
+      go: middle
+  middle:
+    type: passive
+    on: {}
+  orphan_final:
+    type: final
+nodes: {}

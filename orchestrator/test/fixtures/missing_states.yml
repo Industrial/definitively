@@ -1,0 +1,5 @@
+program:
+  id: bad
+  version: 1
+  initial: idle
+nodes: {}

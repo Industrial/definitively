@@ -1,0 +1,11 @@
+program:
+  id: minimal
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      done: finished
+  finished:
+    type: final

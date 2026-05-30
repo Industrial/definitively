@@ -1,0 +1,11 @@
+program:
+  id: bad
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: bogus
+    on: {}
+  done:
+    type: final
+nodes: {}

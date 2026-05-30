@@ -14,4 +14,14 @@ defmodule Orchestrator.Spec.ValidatorTest do
   test "rejects transition to undefined state" do
     assert {:error, %Error{reason: :invalid_transition}} = Loader.load(@invalid)
   end
+
+  test "rejects program without final states" do
+    path = Path.expand("../../fixtures/no_final_state.yml", __DIR__)
+    assert {:error, %Error{reason: :no_final_state}} = Loader.load(path)
+  end
+
+  test "rejects unreachable final states" do
+    path = Path.expand("../../fixtures/unreachable_final.yml", __DIR__)
+    assert {:error, %Error{reason: :unreachable_final}} = Loader.load(path)
+  end
 end

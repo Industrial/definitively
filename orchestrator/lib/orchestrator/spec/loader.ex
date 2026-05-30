@@ -185,10 +185,6 @@ defmodule Orchestrator.Spec.Loader do
   defp parse_command(_cmd, path, id),
     do: {:error, Error.new(:invalid_command, "nodes.#{id}.command must be a list", path)}
 
-  defp parse_outcome(outcome, path, id) when is_map(outcome) do
-    Enum.reduce_while(outcome, {:ok, %{}}, &reduce_outcome_label(&1, &2, path, id))
-  end
-
   defp reduce_outcome_label({label, clauses}, {:ok, acc}, path, id) do
     with {:ok, parsed} <- parse_outcome_clauses(clauses, path, id, label),
          {:ok, label_atom} <- atom_or_error(label, path, "nodes.#{id}.outcome.#{label}") do
@@ -196,6 +192,10 @@ defmodule Orchestrator.Spec.Loader do
     else
       {:error, _} = err -> {:halt, err}
     end
+  end
+
+  defp parse_outcome(outcome, path, id) when is_map(outcome) do
+    Enum.reduce_while(outcome, {:ok, %{}}, &reduce_outcome_label(&1, &2, path, id))
   end
 
   defp parse_outcome(_, path, id),

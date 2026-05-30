@@ -1,0 +1,17 @@
+program:
+  id: bad
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on: {}
+  done:
+    type: final
+nodes:
+  bad:
+    kind: cli
+    command: "mix test"
+    outcome:
+      success:
+        - exit_code: 0

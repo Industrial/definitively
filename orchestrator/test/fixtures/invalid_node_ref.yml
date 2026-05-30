@@ -1,0 +1,13 @@
+program:
+  id: bad
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    node: 123
+    on:
+      done: finished
+  finished:
+    type: final
+nodes: {}

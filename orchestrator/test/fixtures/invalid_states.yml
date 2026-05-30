@@ -1,0 +1,6 @@
+program:
+  id: bad
+  version: 1
+  initial: idle
+states: not-a-map
+nodes: {}

@@ -1,0 +1,12 @@
+program:
+  id: bad
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: approval
+    on:
+      done: finished
+  finished:
+    type: final
+nodes: {}

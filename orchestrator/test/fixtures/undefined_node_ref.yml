@@ -1,0 +1,13 @@
+program:
+  id: bad
+  version: 1
+  initial: lint
+states:
+  lint:
+    type: active
+    node: missing
+    on:
+      success: done
+  done:
+    type: final
+nodes: {}
