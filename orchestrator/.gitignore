@@ -3,3 +3,8 @@
 /deps/
 /doc/
 /orchestrator
+
+# Mix / BEAM artifacts
+erl_crash.dump
+*.tar
+*.out

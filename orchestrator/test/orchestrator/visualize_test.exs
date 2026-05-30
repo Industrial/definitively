@@ -1,5 +1,5 @@
 defmodule Orchestrator.VisualizeTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Orchestrator.Visualize
 
@@ -41,14 +41,60 @@ defmodule Orchestrator.VisualizeTest do
   end
 
   test "parse_cli_opts" do
-    assert {:dot, nil} = Visualize.parse_cli_opts([])
-    assert {:png, "/tmp/x"} = Visualize.parse_cli_opts(["--format", "png", "--out", "/tmp/x"])
-    assert {:svg, nil} = Visualize.parse_cli_opts(["svg"])
+    assert {:default, nil, nil} = Visualize.parse_cli_opts([])
+
+    assert {:single, :png, "/tmp/x"} =
+             Visualize.parse_cli_opts(["--format", "png", "--out", "/tmp/x"])
+
+    assert {:single, :svg, nil} = Visualize.parse_cli_opts(["svg"])
+    assert {:single, :dot, "ignored"} = Visualize.parse_cli_opts(["--out", "ignored"])
   end
 
-  test "cli_render returns stdout dot" do
-    assert {:ok, {:stdout, dot}} = Visualize.cli_render(@fixture, [])
-    assert dot =~ "digraph"
+  test "cli_render default writes dot and png to workspace visualizations dir" do
+    with_workspace_program(@fixture, fn program, workspace ->
+      viz_dir = Path.join([workspace, ".orchestrator", "visualizations"])
+      dot_path = Path.join(viz_dir, "echo_ok.dot")
+      png_path = Path.join(viz_dir, "echo_ok.png")
+
+      if System.find_executable("dot") do
+        assert {:ok, {:files, paths}} = Visualize.cli_render(program, [])
+        assert paths == [dot_path, png_path]
+        assert File.regular?(dot_path)
+        assert File.read!(dot_path) =~ "digraph"
+        assert File.regular?(png_path)
+      else
+        assert {:error, {:graphviz_unavailable, _, [dot_path: ^dot_path]}} =
+                 Visualize.cli_render(program, [])
+
+        assert File.regular?(dot_path)
+        refute File.exists?(png_path)
+      end
+    end)
+  end
+
+  test "cli_render single format writes to default visualizations dir" do
+    with_workspace_program(@fixture, fn program, workspace ->
+      dot_path = Path.join([workspace, ".orchestrator", "visualizations", "echo_ok.dot"])
+
+      assert {:ok, {:files, [^dot_path]}} =
+               Visualize.cli_render(program, ["--format", "dot"])
+
+      assert File.read!(dot_path) =~ "digraph"
+    end)
+  end
+
+  test "cli_render single format with out override" do
+    with_workspace_program(@fixture, fn program, _workspace ->
+      tmp = System.tmp_dir!()
+      out = Path.join(tmp, "orch_viz_cli_out")
+      dot_path = out <> ".dot"
+
+      assert {:ok, {:files, [^dot_path]}} =
+               Visualize.cli_render(program, ["--format", "dot", "--out", out])
+
+      assert File.read!(dot_path) =~ "digraph"
+      File.rm(dot_path)
+    end)
   end
 
   @tag :graphviz
@@ -62,5 +108,27 @@ defmodule Orchestrator.VisualizeTest do
       assert String.ends_with?(file, ".png")
       assert File.regular?(file)
     end
+  end
+
+  defp with_workspace_program(fixture, fun) do
+    tmp = Path.join(System.tmp_dir!(), "orch_viz_ws_#{System.unique_integer()}")
+    programs = Path.join([tmp, ".orchestrator", "programs"])
+    File.mkdir_p!(programs)
+    program = Path.join(programs, Path.basename(fixture))
+    File.cp!(fixture, program)
+
+    prev = System.get_env("ORCHESTRATOR_WORKSPACE")
+    System.put_env("ORCHESTRATOR_WORKSPACE", tmp)
+
+    on_exit(fn ->
+      File.rm_rf(tmp)
+
+      case prev do
+        nil -> System.delete_env("ORCHESTRATOR_WORKSPACE")
+        v -> System.put_env("ORCHESTRATOR_WORKSPACE", v)
+      end
+    end)
+
+    fun.(program, tmp)
   end
 end

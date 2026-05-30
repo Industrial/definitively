@@ -32,10 +32,23 @@ defmodule Orchestrator.CLITest do
     assert {:error, _, 1} = CLI.dispatch(["run", "/nonexistent/program.yml"])
   end
 
-  test "dispatch visualize prints dot" do
-    output = capture_io(fn -> assert :ok = CLI.dispatch(["visualize", @fixture]) end)
-    assert output =~ "digraph"
-    assert output =~ "idle"
+  test "dispatch visualize prints output file paths" do
+    with_workspace_program(@fixture, fn program, workspace ->
+      dot_path = Path.join([workspace, ".orchestrator", "visualizations", "echo_ok.dot"])
+
+      if System.find_executable("dot") do
+        output = capture_io(fn -> assert :ok = CLI.dispatch(["visualize", program]) end)
+        assert output =~ dot_path
+        assert output =~ ".png"
+        refute output =~ "digraph"
+        assert File.read!(dot_path) =~ "idle"
+      else
+        assert {:error, {:graphviz_unavailable, _, [dot_path: ^dot_path]}, 1} =
+                 CLI.dispatch(["visualize", program])
+
+        assert File.read!(dot_path) =~ "idle"
+      end
+    end)
   end
 
   test "dispatch visualize missing program" do
@@ -43,12 +56,17 @@ defmodule Orchestrator.CLITest do
   end
 
   test "dispatch visualize accepts format flag" do
-    output =
-      capture_io(fn ->
-        assert :ok = CLI.dispatch(["visualize", @fixture, "--format", "dot"])
-      end)
+    with_workspace_program(@fixture, fn program, workspace ->
+      dot_path = Path.join([workspace, ".orchestrator", "visualizations", "echo_ok.dot"])
 
-    assert output =~ "digraph"
+      output =
+        capture_io(fn ->
+          assert :ok = CLI.dispatch(["visualize", program, "--format", "dot"])
+        end)
+
+      assert output =~ dot_path
+      refute output =~ "digraph"
+    end)
   end
 
   test "run completes echo_ok program via main" do
@@ -91,13 +109,25 @@ defmodule Orchestrator.CLITest do
   end
 
   test "dispatch visualize invalid yaml" do
-    path = Path.expand("../fixtures/missing_program.yml", __DIR__)
-    assert {:error, _, 1} = CLI.dispatch(["visualize", path])
+    with_workspace_program(
+      Path.expand("../fixtures/missing_program.yml", __DIR__),
+      fn program, _workspace ->
+        assert {:error, _, 1} = CLI.dispatch(["visualize", program])
+      end
+    )
   end
 
-  test "main visualize prints dot to stdout" do
-    output = capture_io(fn -> assert :ok = CLI.main(["visualize", @fixture]) end)
-    assert output =~ "digraph"
+  test "main visualize prints output file paths" do
+    if System.find_executable("dot") do
+      with_workspace_program(@fixture, fn program, workspace ->
+        dot_path = Path.join([workspace, ".orchestrator", "visualizations", "echo_ok.dot"])
+
+        output = capture_io(fn -> assert :ok = CLI.main(["visualize", program]) end)
+
+        assert output =~ dot_path
+        refute output =~ "digraph"
+      end)
+    end
   end
 
   test "dispatch cancel command is removed" do
@@ -106,8 +136,10 @@ defmodule Orchestrator.CLITest do
 
   test "dispatch visualize png without dot reports error" do
     unless System.find_executable("dot") do
-      assert {:error, {:graphviz_unavailable, _}, 1} =
-               CLI.dispatch(["visualize", @fixture, "--format", "png", "--out", "orch_test_out"])
+      with_workspace_program(@fixture, fn program, _workspace ->
+        assert {:error, {:graphviz_unavailable, _}, 1} =
+                 CLI.dispatch(["visualize", program, "--format", "png", "--out", "orch_test_out"])
+      end)
     end
   end
 
@@ -118,33 +150,46 @@ defmodule Orchestrator.CLITest do
 
   test "dispatch visualize writes png path when dot exists" do
     if System.find_executable("dot") do
-      tmp = System.tmp_dir!()
-      out = Path.join(tmp, "orch_cli_viz")
+      with_workspace_program(@fixture, fn program, _workspace ->
+        tmp = System.tmp_dir!()
+        out = Path.join(tmp, "orch_cli_viz")
 
-      output =
-        capture_io(fn ->
-          assert :ok = CLI.dispatch(["visualize", @fixture, "--format", "png", "--out", out])
-        end)
+        output =
+          capture_io(fn ->
+            assert :ok = CLI.dispatch(["visualize", program, "--format", "png", "--out", out])
+          end)
 
-      assert output =~ ".png"
-      File.rm(out <> ".png")
+        assert output =~ ".png"
+        File.rm(out <> ".png")
+      end)
     end
   end
 
   test "dispatch visualize spec error message" do
-    path = Path.expand("../fixtures/missing_program.yml", __DIR__)
-
-    assert {:error, msg, 1} = CLI.dispatch(["visualize", path])
-    assert is_binary(msg)
+    with_workspace_program(
+      Path.expand("../fixtures/missing_program.yml", __DIR__),
+      fn program, _workspace ->
+        assert {:error, msg, 1} = CLI.dispatch(["visualize", program])
+        assert is_binary(msg)
+      end
+    )
   end
 
   test "dispatch visualize out flag only uses dot" do
-    output =
-      capture_io(fn ->
-        assert :ok = CLI.dispatch(["visualize", @fixture, "--out", "ignored"])
-      end)
+    with_workspace_program(@fixture, fn program, _workspace ->
+      tmp = System.tmp_dir!()
+      out = Path.join(tmp, "orch_cli_out_only")
+      dot_path = out <> ".dot"
 
-    assert output =~ "digraph"
+      output =
+        capture_io(fn ->
+          assert :ok = CLI.dispatch(["visualize", program, "--out", out])
+        end)
+
+      assert output =~ dot_path
+      refute output =~ "digraph"
+      File.rm(dot_path)
+    end)
   end
 
   test "dispatch run fails for invalid program under orchestrator layout" do
@@ -167,6 +212,28 @@ defmodule Orchestrator.CLITest do
     end)
 
     assert {:error, _, 1} = CLI.dispatch(["run", bad])
+  end
+
+  defp with_workspace_program(fixture, fun) do
+    tmp = Path.join(System.tmp_dir!(), "orch_cli_ws_#{System.unique_integer()}")
+    programs = Path.join([tmp, ".orchestrator", "programs"])
+    File.mkdir_p!(programs)
+    program = Path.join(programs, Path.basename(fixture))
+    File.cp!(fixture, program)
+
+    prev = System.get_env("ORCHESTRATOR_WORKSPACE")
+    System.put_env("ORCHESTRATOR_WORKSPACE", tmp)
+
+    on_exit(fn ->
+      File.rm_rf(tmp)
+
+      case prev do
+        nil -> System.delete_env("ORCHESTRATOR_WORKSPACE")
+        v -> System.put_env("ORCHESTRATOR_WORKSPACE", v)
+      end
+    end)
+
+    fun.(program, tmp)
   end
 
   defp without_workspace_env(fun) do

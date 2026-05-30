@@ -9,7 +9,14 @@ defmodule Orchestrator.Visualize do
   alias Orchestrator.Domain.{Program, StateDefinition}
   alias Orchestrator.Spec.Loader
 
+  alias Orchestrator.Workspace
+
   @default_format :dot
+  @visualizations_dir ".orchestrator/visualizations"
+
+  @type cli_mode :: :default | :single
+
+  @type parsed_cli :: {cli_mode(), atom() | nil, String.t() | nil}
 
   @doc "Loads a YAML program and builds a Graphvix graph."
   @spec graph(Path.t()) :: {:ok, Graph.t()} | {:error, term()}
@@ -28,16 +35,29 @@ defmodule Orchestrator.Visualize do
   end
 
   @doc "Parses CLI flags after the program path."
-  @spec parse_cli_opts([String.t()]) :: {atom(), String.t() | nil}
+  @spec parse_cli_opts([String.t()]) :: parsed_cli()
   def parse_cli_opts(args) do
     case args do
-      ["--format", fmt, "--out", path] -> {parse_format(fmt), path}
-      ["--format", fmt, path] -> {parse_format(fmt), path}
-      ["--format", fmt] -> {parse_format(fmt), nil}
-      ["--out", path] -> {:dot, path}
-      [fmt] when fmt in ["dot", "png", "svg"] -> {parse_format(fmt), nil}
-      [] -> {:dot, nil}
-      _ -> {:dot, nil}
+      [] ->
+        {:default, nil, nil}
+
+      ["--format", fmt, "--out", path] ->
+        {:single, parse_format(fmt), path}
+
+      ["--format", fmt, path] ->
+        {:single, parse_format(fmt), path}
+
+      ["--format", fmt] ->
+        {:single, parse_format(fmt), nil}
+
+      ["--out", path] ->
+        {:single, :dot, path}
+
+      [fmt] when fmt in ["dot", "png", "svg"] ->
+        {:single, parse_format(fmt), nil}
+
+      _ ->
+        {:single, @default_format, nil}
     end
   end
 
@@ -76,20 +96,27 @@ defmodule Orchestrator.Visualize do
   end
 
   @doc """
-  CLI helper: render and classify output for printing.
+  CLI helper: render workflow visualizations under the workspace.
 
-  Returns `{:ok, {:stdout, dot}}`, `{:ok, {:file, path}}`, or `{:error, term()}`.
+  Default mode writes DOT and PNG to `.orchestrator/visualizations/<basename>`.
+  Single mode writes one format; omit `--out` to use the same default directory.
   """
-  @spec cli_render(Path.t(), [String.t()]) :: {:ok, {:stdout, String.t()} | {:file, String.t()}} | {:error, term()}
+  @spec cli_render(Path.t(), [String.t()]) :: {:ok, {:files, [String.t()]}} | {:error, term()}
   def cli_render(path, rest) do
-    {format, out} = parse_cli_opts(rest)
+    mode = parse_cli_opts(rest)
 
-    case render(path, format: format, out: out) do
-      {:ok, content} when format == :dot -> {:ok, {:stdout, content}}
-      {:ok, file} -> {:ok, {:file, file}}
-      {:error, %Orchestrator.Spec.Error{message: message}} -> {:error, message}
-      {:error, {:compile_failed, reason}} -> {:error, {:graphviz_unavailable, reason}}
-      {:error, reason} -> {:error, reason}
+    case Workspace.resolve_run(path) do
+      {:ok, resolved} ->
+        cli_render_resolved(resolved, mode)
+
+      {:error, :enoent} ->
+        {:error, :invalid_program_path}
+
+      {:error, :no_orchestrator_layout} ->
+        {:error, :no_orchestrator_layout}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -115,6 +142,89 @@ defmodule Orchestrator.Visualize do
         g2
       end)
     end)
+  end
+
+  defp cli_render_resolved(resolved, {:default, nil, nil}) do
+    base = default_visualization_base(resolved)
+    ensure_parent_dir!(base)
+
+    with {:ok, graph} <- graph(resolved.program_path),
+         {:ok, dot_path} <- write_dot(graph, base <> ".dot") do
+      case compile_graph(graph, base, :png) do
+        {:ok, png_path} ->
+          {:ok, {:files, [dot_path, png_path]}}
+
+        {:error, reason} ->
+          {:error, {:graphviz_unavailable, reason, dot_path: dot_path}}
+      end
+    else
+      {:error, %Orchestrator.Spec.Error{message: message}} -> {:error, message}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp cli_render_resolved(resolved, {:single, format, out}) do
+    base =
+      case out do
+        nil -> default_visualization_base(resolved)
+        path -> output_base(path, resolved.program_path)
+      end
+
+    ensure_parent_dir!(base)
+
+    with {:ok, graph} <- graph(resolved.program_path) do
+      case write_format(graph, base, format) do
+        {:ok, file_path} ->
+          {:ok, {:files, [file_path]}}
+
+        {:error, %Orchestrator.Spec.Error{message: message}} ->
+          {:error, message}
+
+        {:error, {:compile_failed, reason}} ->
+          {:error, {:graphviz_unavailable, reason}}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  defp write_format(graph, base, :dot) do
+    write_dot(graph, base <> ".dot")
+  end
+
+  defp write_format(graph, base, fmt) when fmt in [:png, :svg] do
+    compile_graph(graph, base, fmt)
+  end
+
+  defp write_format(_graph, _base, other) do
+    {:error, {:invalid_format, other}}
+  end
+
+  defp write_dot(graph, path) do
+    case File.write(path, Graph.to_dot(graph)) do
+      :ok -> {:ok, path}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp compile_graph(graph, base, fmt) do
+    file = "#{base}.#{fmt}"
+
+    try do
+      {:ok, _} = Graph.compile(graph, base, fmt)
+      {:ok, file}
+    rescue
+      exception -> {:error, {:compile_failed, exception}}
+    end
+  end
+
+  defp default_visualization_base(%{workspace_root: root, program_path: program_path}) do
+    Path.join([root, @visualizations_dir, default_out_base(program_path)])
+  end
+
+  defp ensure_parent_dir!(base) do
+    base |> Path.dirname() |> File.mkdir_p!()
   end
 
   defp state_label(%StateDefinition{name: name, type: type, node: node_id}) do

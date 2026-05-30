@@ -1,0 +1,89 @@
+name: Release orchestrator
+on:
+  push:
+    tags:
+      - orchestrator-v*
+permissions:
+  contents: write
+jobs:
+  build:
+    name: build (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux-x86_64
+          - runner: macos-latest
+            platform: darwin-arm64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nix
+        id: nix-install
+        uses: DeterminateSystems/nix-installer-action@v16
+        continue-on-error: true
+      - name: Build with Nix
+        id: nix-build
+        if: steps.nix-install.outcome == 'success'
+        continue-on-error: true
+        run: nix build .#orchestrator --print-out-paths | tee /tmp/nix-out-path
+      - name: Setup Elixir
+        if: steps.nix-build.outcome != 'success'
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          elixir-version: "1.18"
+      - name: Build with Mix escript
+        if: steps.nix-build.outcome != 'success'
+        working-directory: orchestrator
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get --only prod
+          MIX_ENV=prod mix escript.build
+      - name: Stage release tarball
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#orchestrator-v}"
+          STAGING="dist/orchestrator-${VERSION}-${PLATFORM}"
+          mkdir -p "${STAGING}/bin"
+          cp orchestrator/LICENSE orchestrator/README.md orchestrator/install.sh "${STAGING}/"
+          if [[ -s /tmp/nix-out-path ]]; then
+            NIX_OUT="$(cat /tmp/nix-out-path)"
+            cp "${NIX_OUT}/bin/orchestrator" "${STAGING}/bin/orchestrator"
+          else
+            cp orchestrator/orchestrator "${STAGING}/bin/orchestrator"
+          fi
+          chmod +x "${STAGING}/bin/orchestrator" "${STAGING}/install.sh"
+          ARCHIVE="dist/orchestrator-${VERSION}-${PLATFORM}.tar.gz"
+          tar -czf "${ARCHIVE}" -C dist "orchestrator-${VERSION}-${PLATFORM}"
+          if command -v sha256sum >/dev/null; then
+            sha256sum "${ARCHIVE}" > "dist/checksums-${PLATFORM}.txt"
+          else
+            shasum -a 256 "${ARCHIVE}" > "dist/checksums-${PLATFORM}.txt"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orchestrator-${{ matrix.platform }}
+          path: dist/*
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Combine checksums
+        run: cat dist/checksums-*.txt > dist/checksums.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: orchestrator ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/*.tar.gz
+            dist/checksums.txt

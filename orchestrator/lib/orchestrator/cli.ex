@@ -1,6 +1,7 @@
 defmodule Orchestrator.CLI do
   @moduledoc "Command-line interface for workflow runs and program visualization."
 
+  alias Orchestrator.Init
   alias Orchestrator.Log
   alias Orchestrator.Run.Coordinator
   alias Orchestrator.Visualize
@@ -37,6 +38,9 @@ defmodule Orchestrator.CLI do
       ["visualize", program_path | rest] ->
         dispatch_visualize(program_path, rest)
 
+      ["init" | rest] ->
+        dispatch_init(rest)
+
       _ ->
         :usage
     end
@@ -64,14 +68,23 @@ defmodule Orchestrator.CLI do
     end
   end
 
-  defp dispatch_visualize(program_path, rest) do
-    case Visualize.cli_render(program_path, rest) do
-      {:ok, {:stdout, content}} ->
-        IO.puts(content)
+  defp dispatch_init(rest) do
+    force = "--force" in rest
+
+    case Init.run(force: force) do
+      {:ok, %{created: created, skipped: skipped}} ->
+        print_init_summary(created, skipped)
         :ok
 
-      {:ok, {:file, file}} ->
-        IO.puts(file)
+      {:error, reason} ->
+        {:error, reason, 1}
+    end
+  end
+
+  defp dispatch_visualize(program_path, rest) do
+    case Visualize.cli_render(program_path, rest) do
+      {:ok, {:files, paths}} ->
+        Enum.each(paths, &IO.puts/1)
         :ok
 
       {:error, reason} ->
@@ -114,6 +127,17 @@ defmodule Orchestrator.CLI do
   defp format_error(:awaiting_approval),
     do: "workflow stopped at an approval gate that could not be auto-approved"
 
+  defp format_error({:graphviz_unavailable, %ErlangError{original: :enoent}, opts})
+       when is_list(opts) do
+    dot_suffix(opts) <>
+      "graphviz `dot` not found on PATH — run inside `devenv shell` (graphviz is in devenv.nix) or use --format dot"
+  end
+
+  defp format_error({:graphviz_unavailable, reason, opts}) when is_list(opts) do
+    dot_suffix(opts) <>
+      "graphviz render failed (install `dot` or use --format dot): #{inspect(reason)}"
+  end
+
   defp format_error({:graphviz_unavailable, %ErlangError{original: :enoent}}),
     do:
       "graphviz `dot` not found on PATH — run inside `devenv shell` (graphviz is in devenv.nix) or use --format dot"
@@ -121,21 +145,46 @@ defmodule Orchestrator.CLI do
   defp format_error({:graphviz_unavailable, reason}),
     do: "graphviz render failed (install `dot` or use --format dot): #{inspect(reason)}"
 
+  defp format_error(:templates_missing),
+    do: "orchestrator templates not found — reinstall or rebuild the orchestrator package"
+
   defp format_error(reason) when is_binary(reason), do: reason
   defp format_error(reason), do: "workflow failed: #{inspect(reason)}"
 
+  defp dot_suffix(opts) do
+    case Keyword.get(opts, :dot_path) do
+      nil -> ""
+      path -> "DOT written to #{path} — "
+    end
+  end
+
   defp print_success(["run" | _]), do: IO.puts("workflow finished")
   defp print_success(["visualize" | _]), do: :ok
+  defp print_success(["init" | _]), do: :ok
   defp print_success(_), do: :ok
+
+  defp print_init_summary(created, skipped) do
+    Enum.each(created, fn path -> IO.puts("created #{path}") end)
+    Enum.each(skipped, fn path -> IO.puts("skipped #{path} (exists)") end)
+
+    if created == [] and skipped == [] do
+      IO.puts("no template files found")
+    else
+      IO.puts("orchestrator workspace initialized")
+    end
+  end
 
   defp usage do
     IO.puts(:stderr, """
     Usage:
+      orchestrator init [--force]
       orchestrator run </full/path/to/program.yml>
       orchestrator visualize </full/path/to/program.yml> [--format dot|png|svg] [--out <basename>]
 
+    init copies priv templates into .orchestrator/ under the workspace (cwd or ORCHESTRATOR_WORKSPACE).
     Workspace root is inferred from the program path (parent of .orchestrator/).
-    Override with ORCHESTRATOR_WORKSPACE if needed.
+    Default visualize writes DOT and PNG to .orchestrator/visualizations/.
+    Override workspace with ORCHESTRATOR_WORKSPACE if needed.
     """)
   end
 end

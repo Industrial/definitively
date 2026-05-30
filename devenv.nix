@@ -77,6 +77,10 @@
 in {
   name = "project-template";
 
+  imports = [
+    inputs.repo.devenvModules.orchestrator
+  ];
+
   dotenv = {
     enable = true;
   };
@@ -182,9 +186,6 @@ in {
 
     moon
 
-    # orchestrator visualize --format png|svg (Graphvix shells out to dot)
-    graphviz
-
     actionlint
     alejandra
     beautysh
@@ -288,8 +289,10 @@ in {
 
     (cd "$DEVENV_ROOT/orchestrator" && mix deps.get --quiet) || true
 
-    orchestrator-escript
-    export PATH="$DEVENV_ROOT/orchestrator:$PATH"
+    if [ "''${ORCHESTRATOR_FROM_SOURCE:-}" = "1" ]; then
+      orchestrator-escript
+      export PATH="$DEVENV_ROOT/orchestrator:$PATH"
+    fi
 
     # ElixirLS override dir (also used by scripts/elixir-ls-release/*.sh wrappers)
     mkdir -p "$DEVENV_ROOT/.devenv/elixir-ls-release"

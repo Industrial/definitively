@@ -1,5 +1,5 @@
 defmodule Orchestrator.WorkspaceTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Orchestrator.Workspace
 
@@ -31,13 +31,20 @@ defmodule Orchestrator.WorkspaceTest do
   end
 
   test "resolve_run returns no_orchestrator_layout outside tree" do
-    tmp = System.tmp_dir!()
-    path = Path.join(tmp, "standalone.yml")
-    File.write!(path, "program:\n  id: x\n  version: 1\n  initial: idle\nstates: {}\nnodes: {}\n")
+    without_workspace_env(fn ->
+      tmp = Path.join(System.tmp_dir!(), "orch_ws_#{System.unique_integer()}")
+      File.mkdir_p!(tmp)
+      path = Path.join(tmp, "standalone.yml")
 
-    on_exit(fn -> File.rm(path) end)
+      File.write!(
+        path,
+        "program:\n  id: x\n  version: 1\n  initial: idle\nstates: {}\nnodes: {}\n"
+      )
 
-    assert {:error, :no_orchestrator_layout} = Workspace.resolve_run(path)
+      on_exit(fn -> File.rm_rf(tmp) end)
+
+      assert {:error, :no_orchestrator_layout} = Workspace.resolve_run(path)
+    end)
   end
   test "resolve_run uses ORCHESTRATOR_WORKSPACE when layout is absent" do
     prev = System.get_env("ORCHESTRATOR_WORKSPACE")
@@ -58,4 +65,17 @@ defmodule Orchestrator.WorkspaceTest do
     assert {:ok, %{workspace_root: ^root}} = Workspace.resolve_run(path)
   end
 
+  defp without_workspace_env(fun) do
+    prev = System.get_env("ORCHESTRATOR_WORKSPACE")
+    System.delete_env("ORCHESTRATOR_WORKSPACE")
+
+    try do
+      fun.()
+    after
+      case prev do
+        nil -> System.delete_env("ORCHESTRATOR_WORKSPACE")
+        value -> System.put_env("ORCHESTRATOR_WORKSPACE", value)
+      end
+    end
+  end
 end

@@ -1,4 +1,7 @@
 inputs:
+  repo:
+    url: .
+    flake: true
   fenix:
     url: github:nix-community/fenix
     inputs:
