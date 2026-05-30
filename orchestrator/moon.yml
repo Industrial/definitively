@@ -1,4 +1,4 @@
-# Orchestrator Mix app — format, compile, credo, test (moon project root: this directory).
+# Orchestrator Mix app — format, compile, credo, doctor, test, docs (moon project root: this directory).
 # https://moonrepo.dev/docs/config/project
 id: orchestrator
 language: elixir
@@ -17,9 +17,22 @@ tasks:
     options:
       cache: true
       outputStyle: buffer-only-failure
-  test:
-    description: 'mix test'
+  doctor:
+    description: 'mix doctor --raise --summary (doc + @spec coverage)'
     deps: ['~:lint']
+    command: mix
+    args: [doctor, --raise, --summary]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - '.doctor.exs'
+      - 'mix.exs'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
+  test:
+    description: 'mix test (includes doctests)'
+    deps: ['~:doctor']
     command: mix
     args: [test]
     inputs:
@@ -33,7 +46,7 @@ tasks:
       outputStyle: buffer-only-failure
   coverage:
     description: 'mix test --cover (fails below test_coverage threshold in mix.exs)'
-    deps: ['~:lint']
+    deps: ['~:test']
     command: mix
     args: [test, --cover]
     inputs:
@@ -45,9 +58,23 @@ tasks:
     options:
       cache: true
       outputStyle: buffer-only-failure
+  docs:
+    description: 'mix docs --warnings-as-errors'
+    deps: ['~:test']
+    command: mix
+    args: [docs, --warnings-as-errors]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - 'README.md'
+      - 'mix.exs'
+      - 'mix.lock'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
   build:
     description: 'mix compile --warnings-as-errors'
-    deps: ['~:coverage']
+    deps: ['~:coverage', '~:docs']
     command: mix
     args: [compile, --warnings-as-errors]
     inputs:

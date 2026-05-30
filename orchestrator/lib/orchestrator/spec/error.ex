@@ -9,6 +9,7 @@ defmodule Orchestrator.Spec.Error do
 
   defstruct [:reason, :message, :path]
 
+  @doc "Builds a structured spec error with optional source path."
   @spec new(atom(), String.t(), String.t() | nil) :: t()
   def new(reason, message, path \\ nil) do
     %__MODULE__{reason: reason, message: message, path: path}

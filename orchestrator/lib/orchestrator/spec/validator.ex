@@ -4,6 +4,7 @@ defmodule Orchestrator.Spec.Validator do
   alias Orchestrator.Domain.{Program, StateDefinition}
   alias Orchestrator.Spec.Error
 
+  @doc "Runs structural validation checks on a loaded program."
   @spec validate(Program.t()) :: :ok | {:error, Error.t()}
   def validate(%Program{} = program) do
     [

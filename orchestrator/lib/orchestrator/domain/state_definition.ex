@@ -15,6 +15,7 @@ defmodule Orchestrator.Domain.StateDefinition do
 
   @state_types ~w(passive active approval final)a
 
+  @doc "Returns all supported FSM state types."
   @spec types() :: [state_type()]
   def types, do: @state_types
 end

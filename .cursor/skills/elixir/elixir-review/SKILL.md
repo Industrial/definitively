@@ -96,6 +96,8 @@ One paragraph: merge readiness and main risk.
 ```bash
 mix format --check-formatted
 mix test
+mix doctor --raise --summary
+mix docs --warnings-as-errors
 mix credo --strict    # if project uses Credo
 ```
 

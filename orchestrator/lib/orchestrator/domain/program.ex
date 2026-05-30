@@ -13,6 +13,7 @@ defmodule Orchestrator.Domain.Program do
 
   defstruct [:id, :version, :initial, :states, :nodes]
 
+  @doc "Resolves the active node definition for a state name, if the state is active."
   @spec active_node(t(), atom()) :: {:ok, NodeDefinition.t()} | {:error, :not_active}
   def active_node(%__MODULE__{states: states, nodes: nodes}, state_name) do
     case Map.get(states, state_name) do
@@ -27,6 +28,7 @@ defmodule Orchestrator.Domain.Program do
     end
   end
 
+  @doc "Returns all state names declared with type `:final`."
   @spec final_states(t()) :: [atom()]
   def final_states(%__MODULE__{states: states}) do
     states

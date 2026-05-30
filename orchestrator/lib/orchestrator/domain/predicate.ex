@@ -3,6 +3,7 @@ defmodule Orchestrator.Domain.Predicate do
 
   alias Orchestrator.Domain.RawResult
 
+  @doc "Returns true when every predicate clause in the map matches the raw result."
   @spec matches?(map(), RawResult.t()) :: boolean()
   def matches?(predicate, raw) when is_map(predicate) do
     Enum.all?(predicate, &match_clause(&1, raw))

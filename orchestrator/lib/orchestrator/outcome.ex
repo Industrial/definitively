@@ -24,11 +24,13 @@ defmodule Orchestrator.Outcome do
             raw: %{}
 
   @doc false
+  @spec success(keyword()) :: t()
   def success(opts \\ []) do
     struct!(__MODULE__, Keyword.put(opts, :status, :success))
   end
 
   @doc false
+  @spec failure(keyword()) :: t()
   def failure(opts \\ []) do
     struct!(__MODULE__, Keyword.put(opts, :status, :failure))
   end

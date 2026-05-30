@@ -8,9 +8,11 @@ defmodule Orchestrator.Domain.OutcomeRules do
 
   @type t :: NodeDefinition.outcome_clause()
 
+  @doc "Returns the outcome rule map from a node definition."
   @spec from_node(NodeDefinition.t()) :: t()
   def from_node(%NodeDefinition{outcome: outcome}), do: outcome
 
+  @doc "Classifies a raw node result using the given outcome rules."
   @spec classify(t(), RawResult.t()) :: Outcome.t()
   def classify(rules, %RawResult{} = raw) when is_map(rules) do
     rules

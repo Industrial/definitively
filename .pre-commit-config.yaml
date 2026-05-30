@@ -1,0 +1,24 @@
+# Git hooks via prek (https://github.com/j178/prek) — installed by `devenv shell` (prek-install).
+repos:
+  - repo: local
+    hooks:
+      - id: pre-commit
+        name: pre-commit (moon format + orchestrator doctor)
+        entry: devenv shell -- pre-commit
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: pre-push
+        name: pre-push (moon format + orchestrator full build chain)
+        entry: devenv shell -- pre-push
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true
+      - id: commit-msg
+        name: commit-msg (conventional commits)
+        entry: bash scripts/commit-msg.sh
+        language: system
+        stages: [commit-msg]
+        pass_filenames: true
+        always_run: true

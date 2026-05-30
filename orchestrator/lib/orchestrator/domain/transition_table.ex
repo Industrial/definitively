@@ -8,6 +8,7 @@ defmodule Orchestrator.Domain.TransitionTable do
 
   defstruct edges: %{}
 
+  @doc "Builds a transition lookup table from a loaded program."
   @spec build(Program.t()) :: t()
   def build(%Program{states: states}) do
     edges =
@@ -20,6 +21,7 @@ defmodule Orchestrator.Domain.TransitionTable do
     %__MODULE__{edges: edges}
   end
 
+  @doc "Looks up the target state for a `(from_state, label)` edge."
   @spec next(t(), atom(), atom()) :: {:ok, atom()} | {:error, :no_transition}
   def next(%__MODULE__{edges: edges}, from_state, label) do
     case Map.get(edges, {from_state, label}) do

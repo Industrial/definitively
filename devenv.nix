@@ -214,25 +214,25 @@ in {
       '';
     };
 
-    # Pre-commit: fast gates (Rust + orchestrator)
+    # Pre-commit: fast gates (format + credo + doctor doc/spec coverage)
     pre-commit = {
       exec = ''
         mkdir -p "$DEVENV_ROOT/tmp"
         export TMPDIR="$DEVENV_ROOT/tmp"
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
-        moon run :format :lint :build
+        moon run :format orchestrator:doctor
       '';
     };
 
-    # Pre-push: full workspace gates (Rust + orchestrator)
+    # Pre-push: full orchestrator pipeline (tests, coverage, ExDoc, compile)
     pre-push = {
       exec = ''
         mkdir -p "$DEVENV_ROOT/tmp"
         export TMPDIR="$DEVENV_ROOT/tmp"
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
-        moon run :format :lint :coverage :build
+        moon run :format orchestrator:build
       '';
     };
 

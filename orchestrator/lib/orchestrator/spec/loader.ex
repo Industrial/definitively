@@ -4,6 +4,11 @@ defmodule Orchestrator.Spec.Loader do
   alias Orchestrator.Domain.{NodeDefinition, Program, StateDefinition}
   alias Orchestrator.Spec.{Error, Validator}
 
+  @doc """
+  Reads and validates a YAML workflow file into a `Program`.
+
+  Returns `{:ok, program}` or `{:error, %Error{}}`.
+  """
   @spec load(Path.t()) :: {:ok, Program.t()} | {:error, Error.t()}
   def load(path) do
     with {:ok, raw} <- read_yaml(path),

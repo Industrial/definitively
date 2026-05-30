@@ -29,6 +29,12 @@ defmodule Orchestrator.Domain.NodeDefinition do
 
   @kinds ~w(cli llm)a
 
+  @doc """
+  Returns supported node kinds.
+
+      iex> Orchestrator.Domain.NodeDefinition.kinds()
+      [:cli, :llm]
+  """
   @spec kinds() :: [kind()]
   def kinds, do: @kinds
 end
