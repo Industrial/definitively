@@ -3,7 +3,7 @@ defmodule Orchestrator.CLI do
 
   alias Orchestrator.Run.Coordinator
 
-  @doc "Entry point for `mix orchestrator`."
+  @doc "Entry point for the orchestrator command-line interface."
   @spec main([String.t()]) :: :ok | no_return()
   def main(argv \\ []) do
     case dispatch(argv) do

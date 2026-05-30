@@ -263,6 +263,18 @@ in {
     chmod 755 "$HOME/.cache/sccache" 2>/dev/null || true
 
     export MIX_ENV=dev
+
+    # Hex ETS cache can corrupt (:badfile); remove before deps.get so direnv stays clean.
+    hex_cache="$HOME/.hex/cache.ets"
+    if [ -f "$hex_cache" ]; then
+      export HEX_CACHE="$hex_cache"
+      if ! elixir -e "case :ets.file2tab(String.to_charlist(System.get_env(\"HEX_CACHE\"))) do {:ok, _} -> :ok; _ -> System.halt(1) end" 2>/dev/null; then
+        echo "devenv: removing corrupted Hex cache ($hex_cache)"
+        rm -f "$hex_cache"
+      fi
+      unset HEX_CACHE
+    fi
+
     (cd "$DEVENV_ROOT/orchestrator" && mix deps.get --quiet) || true
 
     # ElixirLS override dir (also used by scripts/elixir-ls-release/*.sh wrappers)

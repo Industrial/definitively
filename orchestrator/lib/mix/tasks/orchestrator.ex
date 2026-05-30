@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Orchestrator do
   @shortdoc "Runs the workflow orchestrator CLI"
-  @moduledoc false
+  @moduledoc "Mix task that delegates to `Orchestrator.CLI`."
 
   use Mix.Task
 
