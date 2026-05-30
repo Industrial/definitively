@@ -9,15 +9,19 @@ defmodule Orchestrator.Outcome do
 
   @type t :: %__MODULE__{
           status: status(),
+          verdict_label: atom() | nil,
           exit_code: non_neg_integer() | nil,
           signals: map(),
-          artifacts: map()
+          artifacts: map(),
+          raw: map()
         }
 
   defstruct status: :unknown,
+            verdict_label: nil,
             exit_code: nil,
             signals: %{},
-            artifacts: %{}
+            artifacts: %{},
+            raw: %{}
 
   @doc false
   def success(opts \\ []) do
