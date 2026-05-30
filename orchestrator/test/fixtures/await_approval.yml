@@ -1,0 +1,20 @@
+program:
+  id: await_approval
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: gate
+  gate:
+    type: approval
+    prompt: "Ship this change?"
+    on:
+      approve: done
+      reject: failed
+  done:
+    type: final
+  failed:
+    type: final
+nodes: {}

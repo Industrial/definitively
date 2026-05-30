@@ -44,7 +44,14 @@ defmodule Orchestrator.Domain.PredicateTest do
     refute Predicate.matches?(%{signal: "flag"}, %RawResult{signals: %{"flag" => false}})
   end
 
-  test "jq and unknown clauses do not match" do
+  test "jq on llm_json status ok" do
+    raw = %RawResult{llm_json: %{"status" => "ok"}}
+
+    assert Predicate.matches?(%{jq: ~s(.status == "ok")}, raw)
+    refute Predicate.matches?(%{jq: ~s(.status == "ok")}, %RawResult{llm_json: %{"status" => "fail"}})
+  end
+
+  test "jq and unknown clauses do not match bare raw" do
     raw = %RawResult{exit_code: 0}
 
     refute Predicate.matches?(%{jq: ".ok"}, raw)

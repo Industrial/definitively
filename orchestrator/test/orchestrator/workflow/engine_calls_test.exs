@@ -47,7 +47,8 @@ defmodule Orchestrator.Workflow.EngineCallsTest do
   test "status returns snapshot" do
     {:ok, pid} = start!(@approval)
 
-    assert %{program_id: "bad", state_type: :approval} = :gen_statem.call(pid, :status)
+    assert %{program_id: "bad", state_type: :approval, approval_prompt: nil} =
+             :gen_statem.call(pid, :status)
 
     :ok = :gen_statem.stop(pid)
   end

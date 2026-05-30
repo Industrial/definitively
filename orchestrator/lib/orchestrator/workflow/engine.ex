@@ -204,10 +204,14 @@ defmodule Orchestrator.Workflow.Engine do
       run_context: data.run_context,
       current_state: state,
       state_type: defn && defn.type,
+      approval_prompt: approval_prompt(defn),
       history: data.history,
       done: match?(%StateDefinition{type: :final}, defn)
     }
   end
+
+  defp approval_prompt(%StateDefinition{type: :approval, prompt: prompt}), do: prompt
+  defp approval_prompt(_), do: nil
 
   defp final_on_cancel(%{program: %{states: states}}) do
     case Map.get(states, :failed) do

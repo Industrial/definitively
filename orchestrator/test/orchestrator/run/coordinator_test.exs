@@ -44,6 +44,19 @@ defmodule Orchestrator.Run.CoordinatorTest do
     assert {:error, :awaiting_approval} = Coordinator.run_until_final(approval)
   end
 
+  test "resume after approve completes await_approval fixture" do
+    path = Path.expand("../../fixtures/await_approval.yml", __DIR__)
+    {:ok, run_id} = Coordinator.start(path)
+    assert :ok = Coordinator.approve(run_id, :approve)
+    assert :ok = Coordinator.resume(run_id)
+    assert {:ok, %{done: true, approval_prompt: nil}} = Coordinator.status(run_id)
+  end
+
+  test "run_until_final drives llm_step fixture" do
+    llm = Path.expand("../../fixtures/llm_step.yml", __DIR__)
+    assert :ok = Coordinator.run_until_final(llm)
+  end
+
   test "start rejects missing program" do
     assert {:error, _} = Coordinator.start("/nonexistent/program.yml")
   end

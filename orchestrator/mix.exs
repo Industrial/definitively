@@ -26,6 +26,7 @@ defmodule Orchestrator.MixProject do
   defp deps do
     [
       {:yaml_elixir, "~> 2.9"},
+      {:jason, "~> 1.4"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:doctor, "~> 0.23", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false}

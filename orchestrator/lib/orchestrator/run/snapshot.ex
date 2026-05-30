@@ -11,6 +11,7 @@ defmodule Orchestrator.Run.Snapshot do
           run_context: RunContext.t() | nil,
           current_state: atom(),
           state_type: atom() | nil,
+          approval_prompt: String.t() | nil,
           history: [map()],
           done: boolean()
         }
@@ -22,6 +23,7 @@ defmodule Orchestrator.Run.Snapshot do
     :run_context,
     :current_state,
     :state_type,
+    :approval_prompt,
     :history,
     :done
   ]

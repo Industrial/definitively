@@ -20,6 +20,15 @@ defmodule Orchestrator.CLITest do
     assert {:error, _, 1} = CLI.dispatch(["run", "/nonexistent/program.yml"])
   end
 
+  test "dispatch run awaits approval" do
+    approval = Path.expand("../fixtures/approval_state.yml", __DIR__)
+    assert {:error, :awaiting_approval, 2} = CLI.dispatch(["run", approval])
+  end
+
+  test "dispatch status not_found" do
+    assert {:error, :not_found, 1} = CLI.dispatch(["status", "run-missing"])
+  end
+
   test "dispatch approve rejects invalid label" do
     approval = Path.expand("../fixtures/approval_state.yml", __DIR__)
     {:ok, run_id} = Coordinator.start(approval)

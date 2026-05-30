@@ -1,0 +1,24 @@
+program:
+  id: llm_step
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: run
+  run:
+    type: active
+    node: agent
+    on:
+      success: done
+  done:
+    type: final
+nodes:
+  agent:
+    kind: llm
+    model: test
+    prompt_file: prompts/test.md
+    outcome:
+      success:
+        - jq: '.status == "ok"'

@@ -4,7 +4,7 @@ defmodule Orchestrator.Run.Coordinator do
   """
 
   alias Orchestrator.Domain.Program
-  alias Orchestrator.Nodes.Cli
+  alias Orchestrator.Nodes.ExecutorRouter
   alias Orchestrator.Outcome.Evaluator
   alias Orchestrator.Run.Snapshot
   alias Orchestrator.Spec.Loader
@@ -53,15 +53,18 @@ defmodule Orchestrator.Run.Coordinator do
     end
   end
 
+  @doc "Continues an in-flight run until final, approval, or error."
+  @spec resume(String.t(), keyword()) :: :ok | {:error, term()}
+  def resume(run_id, opts \\ []), do: drive(run_id, opts)
+
   @doc "Executes the active node, classifies the result, and transitions the engine."
   @spec step(String.t(), keyword()) :: :ok | {:error, term()} | :retry
   def step(run_id, opts \\ []) do
-    executor = Keyword.get(opts, :executor, Cli)
-
     with {:ok, pid} <- lookup(run_id),
          {:ok, snapshot} <- {:ok, :gen_statem.call(pid, :status)},
          true <- snapshot.state_type == :active,
          {:ok, node} <- Program.active_node(snapshot.program, snapshot.current_state),
+         executor = Keyword.get(opts, :executor, ExecutorRouter.module_for(node)),
          {:ok, raw} <- executor.execute(node, snapshot.run_context),
          outcome <- Evaluator.evaluate(node, raw),
          reply <- :gen_statem.call(pid, {:node_finished, outcome}) do

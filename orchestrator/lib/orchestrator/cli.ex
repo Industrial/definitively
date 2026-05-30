@@ -59,7 +59,8 @@ defmodule Orchestrator.CLI do
 
   defp dispatch_approve(run_id, label) do
     with {:ok, label_atom} <- safe_label(label),
-         :ok <- Coordinator.approve(run_id, label_atom) do
+         :ok <- Coordinator.approve(run_id, label_atom),
+         :ok <- Coordinator.resume(run_id) do
       :ok
     else
       {:error, reason} -> {:error, reason, 1}
