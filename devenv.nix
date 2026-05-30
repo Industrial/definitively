@@ -221,7 +221,7 @@ in {
         export TMPDIR="$DEVENV_ROOT/tmp"
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
-        moon run :format orchestrator:doctor
+        moon run :format :lint :doctor :test :coverage :docs :build
       '';
     };
 
@@ -232,7 +232,7 @@ in {
         export TMPDIR="$DEVENV_ROOT/tmp"
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
-        moon run :format orchestrator:build
+        moon run :format :lint :doctor :test :coverage :docs :build
       '';
     };
 
@@ -250,6 +250,13 @@ in {
         cd orchestrator && mix test
       '';
     };
+
+    orchestrator-escript = {
+      exec = ''
+        cd "$DEVENV_ROOT/orchestrator"
+        mix escript.build --force
+      '';
+    };
   };
 
   enterShell = ''
@@ -263,6 +270,7 @@ in {
     chmod 755 "$HOME/.cache/sccache" 2>/dev/null || true
 
     export MIX_ENV=dev
+    export ORCHESTRATOR_WORKSPACE="$DEVENV_ROOT"
 
     # Hex ETS cache can corrupt (:badfile); remove before deps.get so direnv stays clean.
     hex_cache="$HOME/.hex/cache.ets"
@@ -276,6 +284,9 @@ in {
     fi
 
     (cd "$DEVENV_ROOT/orchestrator" && mix deps.get --quiet) || true
+
+    orchestrator-escript
+    export PATH="$DEVENV_ROOT/orchestrator:$PATH"
 
     # ElixirLS override dir (also used by scripts/elixir-ls-release/*.sh wrappers)
     mkdir -p "$DEVENV_ROOT/.devenv/elixir-ls-release"

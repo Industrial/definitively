@@ -4,6 +4,7 @@ defmodule Orchestrator.Domain.OutcomeRules do
   """
 
   alias Orchestrator.Domain.{NodeDefinition, Predicate, RawResult}
+  alias Orchestrator.Log
   alias Orchestrator.Outcome
 
   @type t :: NodeDefinition.outcome_clause()
@@ -15,11 +16,22 @@ defmodule Orchestrator.Domain.OutcomeRules do
   @doc "Classifies a raw node result using the given outcome rules."
   @spec classify(t(), RawResult.t()) :: Outcome.t()
   def classify(rules, %RawResult{} = raw) when is_map(rules) do
-    rules
-    |> Enum.find_value(fn {label, clauses} ->
-      if clause_list_matches?(clauses, raw), do: label
-    end)
-    |> build_outcome(raw)
+    label =
+      rules
+      |> Enum.find_value(fn {label, clauses} ->
+        if clause_list_matches?(clauses, raw), do: label
+      end)
+
+    outcome = build_outcome(label, raw)
+
+    Log.debug("outcome classified",
+      label: outcome.verdict_label,
+      status: outcome.status,
+      exit_code: outcome.exit_code,
+      timed_out: raw.timed_out
+    )
+
+    outcome
   end
 
   defp clause_list_matches?(clauses, raw) when is_list(clauses) do

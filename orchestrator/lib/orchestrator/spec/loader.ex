@@ -2,6 +2,7 @@ defmodule Orchestrator.Spec.Loader do
   @moduledoc "Load YAML workflow programs into `Orchestrator.Domain.Program`."
 
   alias Orchestrator.Domain.{NodeDefinition, Program, StateDefinition}
+  alias Orchestrator.Log
   alias Orchestrator.Spec.{Error, Validator}
 
   @doc """
@@ -11,10 +12,28 @@ defmodule Orchestrator.Spec.Loader do
   """
   @spec load(Path.t()) :: {:ok, Program.t()} | {:error, Error.t()}
   def load(path) do
+    Log.debug("loading program", path: path)
+
     with {:ok, raw} <- read_yaml(path),
          {:ok, program} <- build_program(raw, path),
          :ok <- Validator.validate(program) do
+      Log.info("program loaded",
+        path: path,
+        program_id: program.id,
+        version: program.version,
+        states: map_size(program.states),
+        nodes: map_size(program.nodes)
+      )
+
       {:ok, program}
+    else
+      {:error, %Error{} = err} ->
+        Log.error("program load failed", path: path, error: err.message)
+        {:error, err}
+
+      {:error, reason} ->
+        Log.error("program load failed", path: path, error: inspect(reason))
+        {:error, reason}
     end
   end
 

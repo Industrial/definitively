@@ -1,9 +1,11 @@
 defmodule Orchestrator.Nodes.Cli do
-  @moduledoc "Runs CLI nodes via `System.cmd` with timeout and captured streams."
+  @moduledoc "Runs CLI nodes with live stdout/stderr streaming and captured output."
 
   @behaviour Orchestrator.Nodes.Executor
 
   alias Orchestrator.Domain.{NodeDefinition, RawResult}
+  alias Orchestrator.Log
+  alias Orchestrator.Nodes.StreamCmd
   alias Orchestrator.Workflow.RunContext
 
   @impl Orchestrator.Nodes.Executor
@@ -13,40 +15,28 @@ defmodule Orchestrator.Nodes.Cli do
     command = node.command || []
     cwd = cwd_for(node, ctx)
     timeout_ms = node.timeout_ms || 120_000
-    env = cmd_env(ctx.env)
 
-    started = System.monotonic_time(:millisecond)
+    [executable | args] = with_run_env(command, ctx.env)
 
-    [executable | args] = command
+    Log.debug("cli node execute",
+      node_id: node.id,
+      command: Enum.join(command, " "),
+      cwd: cwd
+    )
 
-    task =
-      Task.async(fn ->
-        executable
-        |> System.cmd(args, cmd_opts(cwd, env))
-      end)
+    case StreamCmd.run(executable, args, cd: cwd, timeout_ms: timeout_ms) do
+      {:ok, {:timed_out, _output, duration_ms}} ->
+        {:ok, %RawResult{timed_out: true, duration_ms: duration_ms}}
 
-    case Task.yield(task, timeout_ms) || Task.shutdown(task, :brutal_kill) do
-      {:ok, {output, exit_code}} ->
-        ended = System.monotonic_time(:millisecond)
-
+      {:ok, {output, exit_code, duration_ms}} ->
         {:ok,
          %RawResult{
            exit_code: exit_code,
            stdout: output,
            stderr: "",
-           duration_ms: ended - started,
+           duration_ms: duration_ms,
            timed_out: false
          }}
-
-      nil ->
-        {:ok,
-         %RawResult{
-           timed_out: true,
-           duration_ms: timeout_ms
-         }}
-
-      {:exit, reason} ->
-        {:error, reason}
     end
   end
 
@@ -58,20 +48,10 @@ defmodule Orchestrator.Nodes.Cli do
     Path.expand(cwd, ctx.workspace_root)
   end
 
-  defp cmd_opts(cwd, env) do
-    base = [cd: cwd, stderr_to_stdout: false]
+  defp with_run_env(command, env) when env in [nil, %{}], do: command
 
-    case env do
-      nil -> base
-      charlist_env -> Keyword.put(base, :env, charlist_env)
-    end
-  end
-
-  defp cmd_env(env) when env == %{}, do: nil
-
-  defp cmd_env(env) when is_map(env) do
-    Enum.map(env, fn {k, v} ->
-      {String.to_charlist(to_string(k)), String.to_charlist(to_string(v))}
-    end)
+  defp with_run_env(command, env) when is_map(env) do
+    assignments = Enum.map(env, fn {k, v} -> "#{k}=#{v}" end)
+    ["env" | assignments ++ command]
   end
 end

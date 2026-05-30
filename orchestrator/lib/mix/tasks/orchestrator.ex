@@ -5,5 +5,8 @@ defmodule Mix.Tasks.Orchestrator do
   use Mix.Task
 
   @impl Mix.Task
-  def run(args), do: Orchestrator.CLI.main(args)
+  def run(args) do
+    Mix.Task.run("app.start")
+    Orchestrator.CLI.main(args)
+  end
 end

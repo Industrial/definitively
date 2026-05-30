@@ -4,6 +4,7 @@ defmodule Orchestrator.Run.Coordinator do
   """
 
   alias Orchestrator.Domain.Program
+  alias Orchestrator.Log
   alias Orchestrator.Nodes.ExecutorRouter
   alias Orchestrator.Outcome.Evaluator
   alias Orchestrator.Run.Snapshot
@@ -24,6 +25,8 @@ defmodule Orchestrator.Run.Coordinator do
   @doc "Loads a program and starts an engine process registered by `run_id`."
   @spec start(Path.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
   def start(program_path, opts \\ []) do
+    Log.info("starting run", path: program_path)
+
     with {:ok, program} <- Loader.load(program_path) do
       start_program(program, opts)
     end
@@ -64,20 +67,71 @@ defmodule Orchestrator.Run.Coordinator do
          {:ok, snapshot} <- {:ok, :gen_statem.call(pid, :status)},
          true <- snapshot.state_type == :active,
          {:ok, node} <- Program.active_node(snapshot.program, snapshot.current_state),
+         :ok <- log_executing_node(run_id, snapshot, node),
          executor = Keyword.get(opts, :executor, ExecutorRouter.module_for(node)),
          {:ok, raw} <- executor.execute(node, snapshot.run_context),
-         outcome <- Evaluator.evaluate(node, raw),
+         outcome = Evaluator.evaluate(node, raw),
+         :ok <- log_node_outcome(run_id, node, outcome),
          reply <- :gen_statem.call(pid, {:node_finished, outcome}) do
+      log_step_reply(run_id, snapshot.current_state, reply)
       normalize_step_reply(reply)
     else
-      false -> {:error, :not_active}
-      {:error, _} = err -> err
+      false ->
+        Log.warn("step called while run not active", run_id: run_id)
+        {:error, :not_active}
+
+      {:error, _} = err ->
+        Log.error("step failed", run_id: run_id, error: inspect(err))
+        err
     end
   end
 
+  defp log_executing_node(run_id, snapshot, node) do
+    Log.info("executing node",
+      run_id: run_id,
+      state: snapshot.current_state,
+      node_id: node.id,
+      kind: node.kind
+    )
+
+    :ok
+  end
+
+  defp log_node_outcome(run_id, node, outcome) do
+    Log.info("node outcome",
+      run_id: run_id,
+      node_id: node.id,
+      status: outcome.status,
+      label: outcome.verdict_label,
+      exit_code: outcome.exit_code
+    )
+
+    :ok
+  end
+
+  defp log_step_reply(run_id, state, :ok) do
+    Log.debug("step completed", run_id: run_id, state: state)
+    :ok
+  end
+
+  defp log_step_reply(run_id, state, :retry) do
+    Log.info("step retry", run_id: run_id, state: state)
+    :ok
+  end
+
+  defp log_step_reply(run_id, state, {:error, reason}) do
+    Log.warn("step engine reply error", run_id: run_id, state: state, error: inspect(reason))
+    :ok
+  end
+
+  defp log_step_reply(_run_id, _state, _reply), do: :ok
+
   defp start_program(%Program{} = program, opts) do
     run_id = Keyword.get(opts, :run_id, unique_run_id())
-    workspace = Keyword.get(opts, :workspace_root, File.cwd!())
+    workspace =
+      Keyword.get(opts, :workspace_root) ||
+        System.get_env("ORCHESTRATOR_WORKSPACE") ||
+        File.cwd!()
 
     ctx = %RunContext{
       run_id: run_id,
@@ -97,9 +151,16 @@ defmodule Orchestrator.Run.Coordinator do
       {:ok, pid} ->
         case maybe_start(pid, program) do
           :ok ->
+            Log.info("run started",
+              run_id: run_id,
+              program_id: program.id,
+              workspace: workspace
+            )
+
             {:ok, run_id}
 
           {:error, _} = err ->
+            Log.error("run failed to start workflow", run_id: run_id, error: inspect(err))
             DynamicSupervisor.terminate_child(@supervisor, pid)
             err
         end
@@ -112,19 +173,37 @@ defmodule Orchestrator.Run.Coordinator do
   defp drive(run_id, opts) do
     case status(run_id) do
       {:ok, %Snapshot{done: true}} ->
+        Log.info("run finished", run_id: run_id, state: :done)
         :ok
 
-      {:ok, %Snapshot{state_type: :active}} ->
+      {:ok, %Snapshot{state_type: :active} = snap} ->
+        Log.debug("driving active state",
+          run_id: run_id,
+          state: snap.current_state
+        )
+
         case step(run_id, opts) do
           :ok -> drive(run_id, opts)
           :retry -> drive(run_id, opts)
           {:error, _} = err -> err
         end
 
-      {:ok, %Snapshot{state_type: :approval}} ->
+      {:ok, %Snapshot{state_type: :approval} = snap} ->
+        Log.info("run awaiting approval",
+          run_id: run_id,
+          state: snap.current_state,
+          prompt: snap.approval_prompt
+        )
+
         {:error, :awaiting_approval}
 
-      {:ok, _} ->
+      {:ok, snap} ->
+        Log.error("run stuck in non-active state",
+          run_id: run_id,
+          state: snap.current_state,
+          state_type: snap.state_type
+        )
+
         {:error, :stuck}
 
       {:error, _} = err ->

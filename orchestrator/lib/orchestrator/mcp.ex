@@ -1,4 +1,6 @@
 defmodule Orchestrator.MCP do
+
+  alias Orchestrator.Log
   @moduledoc """
   MCP-style tool surface over `Orchestrator.Run.Coordinator`.
 
@@ -27,6 +29,7 @@ defmodule Orchestrator.MCP do
   end
 
   defp tool_run(%{"program_path" => path} = params) do
+    Log.info("mcp workflow_run", program_path: path)
     opts = run_opts(params)
 
     if truthy?(Map.get(params, "auto_run", true)) do

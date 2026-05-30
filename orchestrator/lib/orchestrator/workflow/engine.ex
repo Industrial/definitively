@@ -10,6 +10,7 @@ defmodule Orchestrator.Workflow.Engine do
   @behaviour :gen_statem
 
   alias Orchestrator.Domain.{Program, StateDefinition, TransitionTable}
+  alias Orchestrator.Log
   alias Orchestrator.Outcome
   alias Orchestrator.Run.Snapshot
   alias Orchestrator.Spec.Loader
@@ -69,6 +70,13 @@ defmodule Orchestrator.Workflow.Engine do
     table = TransitionTable.build(program)
     run_context = Keyword.get(opts, :run_context)
 
+    Log.info("engine initialized",
+      program_id: program.id,
+      version: program.version,
+      initial_state: program.initial,
+      run_id: run_context && run_context.run_id
+    )
+
     {:ok, program.initial,
      %{
        program: program,
@@ -84,9 +92,17 @@ defmodule Orchestrator.Workflow.Engine do
   def handle_event({:call, from}, {:start, _workflow}, state, data) do
     with %StateDefinition{type: :passive} <- state_def(data, state),
          {:ok, next} <- TransitionTable.next(data.table, state, :start) do
+      Log.info("workflow started",
+        from_state: state,
+        to_state: next,
+        run_id: data.run_context && data.run_context.run_id
+      )
+
       {:next_state, next, record(data, state, :start, next), [{:reply, from, :ok}]}
     else
-      _ -> {:keep_state_and_data, [{:reply, from, {:error, :invalid_start}}]}
+      _ ->
+        Log.warn("invalid workflow start", state: state)
+        {:keep_state_and_data, [{:reply, from, {:error, :invalid_start}}]}
     end
   end
 
@@ -101,6 +117,13 @@ defmodule Orchestrator.Workflow.Engine do
   def handle_event({:call, from}, {:approve, label}, state, data) do
     with %StateDefinition{type: :approval} <- state_def(data, state),
          {:ok, next} <- TransitionTable.next(data.table, state, label) do
+      Log.info("approval granted",
+        state: state,
+        label: label,
+        to_state: next,
+        run_id: data.run_context && data.run_context.run_id
+      )
+
       {:next_state, next, record(data, state, label, next), [{:reply, from, :ok}]}
     else
       _ -> {:keep_state_and_data, [{:reply, from, {:error, :invalid_approve}}]}
@@ -150,20 +173,35 @@ defmodule Orchestrator.Workflow.Engine do
         transition_active(from, state, data, label, outcome)
 
       _ ->
+        Log.warn("node finished while not active", state: state, outcome: outcome.status)
         {:keep_state_and_data, [{:reply, from, {:error, :not_active}}]}
     end
   end
 
   defp transition_active(from, state, data, label, outcome) do
+    meta =
+      Log.metadata(
+        run_id: data.run_context && data.run_context.run_id,
+        program_id: data.program.id,
+        from_state: state,
+        label: label,
+        outcome: outcome.status,
+        verdict: outcome.verdict_label
+      )
+
     case TransitionTable.next(data.table, state, label) do
       {:ok, ^state} ->
+        attempt = Map.get(data.attempts, state, 0) + 1
+        Log.warn("retrying state", [state: state, attempt: attempt] ++ meta)
         {:keep_state, bump_attempt(data, state), [{:reply, from, :retry}]}
 
       {:ok, next} ->
+        Log.info("state transition", [to_state: next] ++ meta)
         reply = active_reply(state, label, outcome, next)
         {:next_state, next, record(data, state, label, next), [{:reply, from, reply}]}
 
       {:error, :no_transition} ->
+        Log.error("unknown outcome for state", meta)
         {:keep_state, data, [{:reply, from, {:error, :unknown_outcome}}]}
     end
   end

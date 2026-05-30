@@ -36,4 +36,21 @@ defmodule Orchestrator.Nodes.CliTest do
     ctx = %RunContext{run_id: "t1", workspace_root: ".", env: %{}}
     assert {:error, {:unsupported_kind, :llm}} = Cli.execute(node, ctx)
   end
+
+  test "expands relative cwd under workspace root" do
+    tmp = System.tmp_dir!()
+
+    node = %NodeDefinition{
+      id: :pwd,
+      kind: :cli,
+      command: ["sh", "-c", "pwd"],
+      cwd: ".",
+      outcome: %{}
+    }
+
+    ctx = %RunContext{run_id: "t1", workspace_root: tmp, env: %{}}
+    assert {:ok, %{stdout: stdout}} = Cli.execute(node, ctx)
+    assert String.trim(stdout) == Path.expand(".", tmp)
+  end
+
 end

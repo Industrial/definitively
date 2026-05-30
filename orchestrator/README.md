@@ -5,7 +5,27 @@ FSM-based workflow runner for CLI commands, LLM sessions, and git steps.
 States are implemented with OTP `:gen_statem` in `Orchestrator.Workflow.Engine`.
 Node evaluators return `Orchestrator.Outcome` values (not raw exit codes).
 
+## CLI (product)
+
+Build the escript (devenv does this on shell enter):
+
+```bash
+cd orchestrator && mix escript.build
+export PATH="$(pwd):$PATH"
+```
+
+Run a workflow by **full path** to the program YAML:
+
+```bash
+orchestrator run "$PWD/../.orchestrator/programs/dev-quality-loop.yml"
+```
+
+Workspace root is the parent of `.orchestrator/`. Override with `ORCHESTRATOR_WORKSPACE` if needed.
+
+Set `ORCHESTRATOR_LOG_LEVEL` (`TRACE` … `ERROR`, default `INFO`) for run visibility.
+
 ## Development (devenv)
+
 
 From the repo root:
 
@@ -52,5 +72,5 @@ lib/orchestrator/
   outcome.ex           # NodeResult / status
   workflow/engine.ex   # gen_statem FSM
   nodes/               # CLI, LLM, git evaluators (TBD)
-  cli.ex               # escript / main entry (TBD)
+  cli.ex               # CLI entry (escript + Mix task)
 ```

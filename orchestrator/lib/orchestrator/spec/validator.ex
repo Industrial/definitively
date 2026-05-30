@@ -1,4 +1,6 @@
 defmodule Orchestrator.Spec.Validator do
+
+  alias Orchestrator.Log
   @moduledoc "Cross-checks on a loaded `Program` before execution."
 
   alias Orchestrator.Domain.{Program, StateDefinition}
@@ -7,6 +9,7 @@ defmodule Orchestrator.Spec.Validator do
   @doc "Runs structural validation checks on a loaded program."
   @spec validate(Program.t()) :: :ok | {:error, Error.t()}
   def validate(%Program{} = program) do
+    Log.trace("validating program", program_id: program.id)
     [
       &validate_initial/1,
       &validate_state_transitions/1,

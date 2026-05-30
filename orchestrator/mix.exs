@@ -10,11 +10,11 @@ defmodule Orchestrator.MixProject do
       description: "FSM workflow orchestrator for CLI and LLM tasks",
       test_coverage: [summary: [threshold: 90]],
       docs: docs(),
-      deps: deps()
+      deps: deps(),
+      escript: escript()
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger],
@@ -22,7 +22,6 @@ defmodule Orchestrator.MixProject do
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:yaml_elixir, "~> 2.9"},
@@ -31,6 +30,10 @@ defmodule Orchestrator.MixProject do
       {:doctor, "~> 0.23", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false}
     ]
+  end
+
+  defp escript do
+    [main_module: Orchestrator.CLI, name: "orchestrator"]
   end
 
   defp docs do
