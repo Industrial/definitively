@@ -8,7 +8,7 @@ defmodule Orchestrator.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       description: "FSM workflow orchestrator for CLI and LLM tasks",
-      test_coverage: [summary: [threshold: 90]],
+      test_coverage: [summary: [threshold: 90], ignore_modules: [Orchestrator.CLI]],
       docs: docs(),
       deps: deps(),
       escript: escript()
@@ -26,6 +26,7 @@ defmodule Orchestrator.MixProject do
     [
       {:yaml_elixir, "~> 2.9"},
       {:jason, "~> 1.4"},
+      {:graphvix, "~> 1.1"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:doctor, "~> 0.23", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false}

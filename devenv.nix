@@ -182,6 +182,9 @@ in {
 
     moon
 
+    # orchestrator visualize --format png|svg (Graphvix shells out to dot)
+    graphviz
+
     actionlint
     alejandra
     beautysh

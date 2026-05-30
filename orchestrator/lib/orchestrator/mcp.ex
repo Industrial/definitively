@@ -1,16 +1,15 @@
 defmodule Orchestrator.MCP do
-
-  alias Orchestrator.Log
   @moduledoc """
-  MCP-style tool surface over `Orchestrator.Run.Coordinator`.
+  MCP-style tool surface over `Orchestrator.Run.Coordinator` and `Orchestrator.Visualize`.
 
-  Tools: `workflow_run`, `workflow_status`, `workflow_approve`, `workflow_cancel`.
-  Returns JSON-friendly maps for stdio or HTTP transports.
+  Tools: `workflow_run`, `workflow_visualize`.
   """
 
-  alias Orchestrator.Run.{Coordinator, Snapshot}
+  alias Orchestrator.Log
+  alias Orchestrator.Run.Coordinator
+  alias Orchestrator.Visualize
 
-  @tools ~w(workflow_run workflow_status workflow_approve workflow_cancel)
+  @tools ~w(workflow_run workflow_visualize)
 
   @doc "Lists supported tool names."
   @spec tools() :: [String.t()]
@@ -21,9 +20,7 @@ defmodule Orchestrator.MCP do
   def handle_tool(name, params) when is_map(params) do
     case name do
       "workflow_run" -> tool_run(params)
-      "workflow_status" -> tool_status(params)
-      "workflow_approve" -> tool_approve(params)
-      "workflow_cancel" -> tool_cancel(params)
+      "workflow_visualize" -> tool_visualize(params)
       _ -> {:error, error_map(:unknown_tool, "unknown tool #{inspect(name)}")}
     end
   end
@@ -32,72 +29,43 @@ defmodule Orchestrator.MCP do
     Log.info("mcp workflow_run", program_path: path)
     opts = run_opts(params)
 
-    if truthy?(Map.get(params, "auto_run", true)) do
-      case Coordinator.run_until_final(path, opts) do
-        :ok ->
-          {:ok, %{ok: true, result: "finished"}}
+    case Coordinator.run_until_final(path, opts) do
+      :ok ->
+        {:ok, %{ok: true, result: "finished"}}
 
-        {:error, :awaiting_approval} ->
-          {:ok, %{ok: false, awaiting_approval: true}}
+      {:error, :awaiting_approval} ->
+        {:ok, %{ok: false, awaiting_approval: true}}
 
-        {:error, reason} ->
-          {:error, error_map(:run_failed, reason)}
-      end
-    else
-      case Coordinator.start(path, opts) do
-        {:ok, run_id} ->
-          {:ok, %{ok: true, run_id: run_id}}
-
-        {:error, reason} ->
-          {:error, error_map(:start_failed, reason)}
-      end
+      {:error, reason} ->
+        {:error, error_map(:run_failed, reason)}
     end
   end
 
   defp tool_run(_), do: {:error, error_map(:invalid_params, "program_path required")}
 
-  defp tool_status(%{"run_id" => run_id}) do
-    case Coordinator.status(run_id) do
-      {:ok, %Snapshot{} = snap} -> {:ok, snapshot_map(snap)}
-      {:error, reason} -> {:error, error_map(:status_failed, reason)}
+  defp tool_visualize(%{"program_path" => path} = params) do
+    format = parse_format(Map.get(params, "format", "dot"))
+    out = Map.get(params, "out")
+
+    case Visualize.render(path, format: format, out: out) do
+      {:ok, content} when format == :dot ->
+        {:ok, %{ok: true, format: "dot", dot: content}}
+
+      {:ok, file} ->
+        {:ok, %{ok: true, format: Atom.to_string(format), path: file}}
+
+      {:error, reason} ->
+        {:error, error_map(:visualize_failed, reason)}
     end
   end
 
-  defp tool_status(_), do: {:error, error_map(:invalid_params, "run_id required")}
+  defp tool_visualize(_),
+    do: {:error, error_map(:invalid_params, "program_path required")}
 
-  defp tool_approve(%{"run_id" => run_id, "label" => label}) do
-    with {:ok, label_atom} <- safe_label(label),
-         :ok <- Coordinator.approve(run_id, label_atom),
-         :ok <- Coordinator.resume(run_id) do
-      {:ok, %{ok: true, run_id: run_id, label: label}}
-    else
-      {:error, reason} -> {:error, error_map(:approve_failed, reason)}
-    end
-  end
-
-  defp tool_approve(_),
-    do: {:error, error_map(:invalid_params, "run_id and label required")}
-
-  defp tool_cancel(%{"run_id" => run_id}) do
-    case Coordinator.cancel(run_id) do
-      :ok -> {:ok, %{ok: true, run_id: run_id}}
-      {:error, reason} -> {:error, error_map(:cancel_failed, reason)}
-    end
-  end
-
-  defp tool_cancel(_), do: {:error, error_map(:invalid_params, "run_id required")}
-
-  defp snapshot_map(%Snapshot{} = snap) do
-    %{
-      run_id: snap.run_id,
-      program_id: snap.program_id,
-      current_state: snap.current_state,
-      state_type: snap.state_type,
-      approval_prompt: snap.approval_prompt,
-      done: snap.done,
-      history: snap.history
-    }
-  end
+  defp parse_format("dot"), do: :dot
+  defp parse_format("png"), do: :png
+  defp parse_format("svg"), do: :svg
+  defp parse_format(_), do: :dot
 
   defp run_opts(params) do
     []
@@ -107,15 +75,6 @@ defmodule Orchestrator.MCP do
 
   defp maybe_put(opts, _key, nil), do: opts
   defp maybe_put(opts, key, val), do: Keyword.put(opts, key, val)
-
-  defp safe_label(label) do
-    {:ok, String.to_existing_atom(label)}
-  rescue
-    ArgumentError -> {:error, :invalid_label}
-  end
-
-  defp truthy?(val) when val in [true, "true", 1, "1"], do: true
-  defp truthy?(_), do: false
 
   defp error_map(code, message) do
     %{ok: false, error: %{code: code, message: format_message(message)}}

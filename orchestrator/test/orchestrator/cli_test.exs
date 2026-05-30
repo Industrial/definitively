@@ -4,68 +4,55 @@ defmodule Orchestrator.CLITest do
   import ExUnit.CaptureIO
 
   alias Orchestrator.CLI
-  alias Orchestrator.Run.Coordinator
 
   @fixture Path.expand("../fixtures/echo_ok.yml", __DIR__)
+  @approval Path.expand("../fixtures/approval_state.yml", __DIR__)
 
   test "dispatch run completes echo_ok program" do
     assert :ok = CLI.dispatch(["run", @fixture])
   end
 
-  test "dispatch run reports run_id when awaiting approval" do
-    approval = Path.expand("../fixtures/approval_state.yml", __DIR__)
-
-    assert {:error, :awaiting_approval, 2} = CLI.dispatch(["run", approval])
+  test "dispatch run auto-approves approval_state" do
+    assert :ok = CLI.dispatch(["run", @approval])
   end
 
   test "dispatch returns usage for unknown command" do
     assert :usage = CLI.dispatch(["nope"])
   end
 
+  test "dispatch returns usage for removed status command" do
+    assert :usage = CLI.dispatch(["status", "run-1"])
+  end
+
+  test "dispatch returns usage for removed approve command" do
+    assert :usage = CLI.dispatch(["approve", "run-1", "done"])
+  end
+
   test "dispatch run reports missing program" do
     assert {:error, _, 1} = CLI.dispatch(["run", "/nonexistent/program.yml"])
   end
 
-  test "dispatch run awaits approval" do
-    approval = Path.expand("../fixtures/approval_state.yml", __DIR__)
-    assert {:error, :awaiting_approval, 2} = CLI.dispatch(["run", approval])
+  test "dispatch visualize prints dot" do
+    output = capture_io(fn -> assert :ok = CLI.dispatch(["visualize", @fixture]) end)
+    assert output =~ "digraph"
+    assert output =~ "idle"
   end
 
-  test "dispatch status not_found" do
-    assert {:error, :not_found, 1} = CLI.dispatch(["status", "run-missing"])
+  test "dispatch visualize missing program" do
+    assert {:error, _, 1} = CLI.dispatch(["visualize", "/nonexistent/program.yml"])
   end
 
-  test "dispatch approve rejects invalid label" do
-    approval = Path.expand("../fixtures/approval_state.yml", __DIR__)
-    {:ok, run_id} = Coordinator.start(approval)
-    assert {:error, :invalid_label, 1} = CLI.dispatch(["approve", run_id, "not-a-real-label"])
-  end
+  test "dispatch visualize accepts format flag" do
+    output =
+      capture_io(fn ->
+        assert :ok = CLI.dispatch(["visualize", @fixture, "--format", "dot"])
+      end)
 
-  test "dispatch approve rejects non-approval run" do
-    {:ok, run_id} = Coordinator.start(@fixture)
-    assert {:error, :invalid_approve, 1} = CLI.dispatch(["approve", run_id, "done"])
+    assert output =~ "digraph"
   end
 
   test "run completes echo_ok program via main" do
     assert capture_io(fn -> CLI.main(["run", @fixture]) end) =~ "workflow finished"
-  end
-
-  test "status via dispatch succeeds for active run" do
-    {:ok, run_id} = Coordinator.start(@fixture)
-    assert :ok = CLI.dispatch(["status", run_id])
-  end
-
-  test "approve via CLI" do
-    approval = Path.expand("../fixtures/approval_state.yml", __DIR__)
-    {:ok, run_id} = Coordinator.start(approval)
-
-    assert capture_io(fn -> CLI.main(["approve", run_id, "done"]) end) =~ "approved"
-  end
-
-  test "cancel via CLI" do
-    {:ok, run_id} = Coordinator.start(@fixture)
-
-    assert capture_io(fn -> CLI.main(["cancel", run_id]) end) =~ "cancelled"
   end
 
   test "mix orchestrator task delegates to CLI" do
@@ -94,20 +81,92 @@ defmodule Orchestrator.CLITest do
     assert {:error, :invalid_start, 1} = CLI.dispatch(["run", minimal])
   end
 
-  describe "main" do
-    test "status success prints nothing extra" do
-      {:ok, run_id} = Coordinator.start(@fixture)
-      assert capture_io(fn -> CLI.main(["status", run_id]) end) == ""
+  test "dispatch visualize without path returns usage" do
+    assert :usage = CLI.dispatch(["visualize"])
+  end
+
+  test "dispatch run stops at approval without auto label" do
+    path = Path.expand("../fixtures/reject_only.yml", __DIR__)
+    assert {:error, :awaiting_approval, 2} = CLI.dispatch(["run", path])
+  end
+
+  test "dispatch visualize invalid yaml" do
+    path = Path.expand("../fixtures/missing_program.yml", __DIR__)
+    assert {:error, _, 1} = CLI.dispatch(["visualize", path])
+  end
+
+  test "main visualize prints dot to stdout" do
+    output = capture_io(fn -> assert :ok = CLI.main(["visualize", @fixture]) end)
+    assert output =~ "digraph"
+  end
+
+  test "dispatch cancel command is removed" do
+    assert :usage = CLI.dispatch(["cancel", "run-1"])
+  end
+
+  test "dispatch visualize png without dot reports error" do
+    unless System.find_executable("dot") do
+      assert {:error, {:graphviz_unavailable, _}, 1} =
+               CLI.dispatch(["visualize", @fixture, "--format", "png", "--out", "orch_test_out"])
     end
   end
 
-  test "approve resume without ORCHESTRATOR_WORKSPACE env" do
-    approval = Path.expand("../fixtures/approval_state.yml", __DIR__)
-    {:ok, run_id} = Coordinator.start(approval)
+  test "dispatch run generic error from invalid_start surfaces code 1" do
+    minimal = Path.expand("../fixtures/minimal_passive.yml", __DIR__)
+    assert {:error, :invalid_start, 1} = CLI.dispatch(["run", minimal])
+  end
 
-    without_workspace_env(fn ->
-      assert capture_io(fn -> CLI.main(["approve", run_id, "done"]) end) =~ "approved"
+  test "dispatch visualize writes png path when dot exists" do
+    if System.find_executable("dot") do
+      tmp = System.tmp_dir!()
+      out = Path.join(tmp, "orch_cli_viz")
+
+      output =
+        capture_io(fn ->
+          assert :ok = CLI.dispatch(["visualize", @fixture, "--format", "png", "--out", out])
+        end)
+
+      assert output =~ ".png"
+      File.rm(out <> ".png")
+    end
+  end
+
+  test "dispatch visualize spec error message" do
+    path = Path.expand("../fixtures/missing_program.yml", __DIR__)
+
+    assert {:error, msg, 1} = CLI.dispatch(["visualize", path])
+    assert is_binary(msg)
+  end
+
+  test "dispatch visualize out flag only uses dot" do
+    output =
+      capture_io(fn ->
+        assert :ok = CLI.dispatch(["visualize", @fixture, "--out", "ignored"])
+      end)
+
+    assert output =~ "digraph"
+  end
+
+  test "dispatch run fails for invalid program under orchestrator layout" do
+    tmp = Path.join(System.tmp_dir!(), "orch_cli_ws_#{System.unique_integer()}")
+    orch = Path.join([tmp, ".orchestrator", "programs"])
+    File.mkdir_p!(orch)
+    bad = Path.join(orch, "bad.yml")
+    File.cp!(Path.expand("../fixtures/missing_program.yml", __DIR__), bad)
+
+    prev = System.get_env("ORCHESTRATOR_WORKSPACE")
+    System.put_env("ORCHESTRATOR_WORKSPACE", tmp)
+
+    on_exit(fn ->
+      File.rm_rf(tmp)
+
+      case prev do
+        nil -> System.delete_env("ORCHESTRATOR_WORKSPACE")
+        v -> System.put_env("ORCHESTRATOR_WORKSPACE", v)
+      end
     end)
+
+    assert {:error, _, 1} = CLI.dispatch(["run", bad])
   end
 
   defp without_workspace_env(fun) do
@@ -123,5 +182,4 @@ defmodule Orchestrator.CLITest do
       end
     end
   end
-
 end

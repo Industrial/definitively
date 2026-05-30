@@ -3,7 +3,7 @@ defmodule Orchestrator.Run.Coordinator do
   Application facade for starting and controlling ephemeral workflow runs.
   """
 
-  alias Orchestrator.Domain.Program
+  alias Orchestrator.Domain.{Program, StateDefinition}
   alias Orchestrator.Log
   alias Orchestrator.Nodes.ExecutorRouter
   alias Orchestrator.Outcome.Evaluator
@@ -172,42 +172,60 @@ defmodule Orchestrator.Run.Coordinator do
 
   defp drive(run_id, opts) do
     case status(run_id) do
-      {:ok, %Snapshot{done: true}} ->
-        Log.info("run finished", run_id: run_id, state: :done)
-        :ok
+      {:ok, snap} -> drive_snapshot(run_id, opts, snap)
+      {:error, _} = err -> err
+    end
+  end
 
-      {:ok, %Snapshot{state_type: :active} = snap} ->
-        Log.debug("driving active state",
-          run_id: run_id,
-          state: snap.current_state
-        )
+  defp drive_snapshot(run_id, _opts, %Snapshot{done: true}) do
+    Log.info("run finished", run_id: run_id, state: :done)
+    :ok
+  end
 
-        case step(run_id, opts) do
-          :ok -> drive(run_id, opts)
-          :retry -> drive(run_id, opts)
-          {:error, _} = err -> err
-        end
+  defp drive_snapshot(run_id, opts, %Snapshot{state_type: :active} = snap) do
+    Log.debug("driving active state", run_id: run_id, state: snap.current_state)
 
-      {:ok, %Snapshot{state_type: :approval} = snap} ->
-        Log.info("run awaiting approval",
+    case step(run_id, opts) do
+      :ok -> drive(run_id, opts)
+      :retry -> drive(run_id, opts)
+      {:error, _} = err -> err
+    end
+  end
+
+  defp drive_snapshot(run_id, opts, %Snapshot{state_type: :approval} = snap) do
+    drive_approval(run_id, opts, snap)
+  end
+
+  defp drive_snapshot(run_id, _opts, snap) do
+    Log.error("run stuck in non-active state",
+      run_id: run_id,
+      state: snap.current_state,
+      state_type: snap.state_type
+    )
+
+    {:error, :stuck}
+  end
+
+  defp drive_approval(run_id, opts, snap) do
+    case auto_approval_label(snap) do
+      {:ok, label} ->
+        Log.info("auto-approving gate",
           run_id: run_id,
           state: snap.current_state,
+          label: label,
           prompt: snap.approval_prompt
         )
 
-        {:error, :awaiting_approval}
+        with :ok <- approve(run_id, label), do: drive(run_id, opts)
 
-      {:ok, snap} ->
-        Log.error("run stuck in non-active state",
+      {:error, reason} ->
+        Log.error("run stuck at approval without auto label",
           run_id: run_id,
           state: snap.current_state,
-          state_type: snap.state_type
+          reason: reason
         )
 
-        {:error, :stuck}
-
-      {:error, _} = err ->
-        err
+        {:error, :awaiting_approval}
     end
   end
 
@@ -225,6 +243,23 @@ defmodule Orchestrator.Run.Coordinator do
 
   defp unique_run_id do
     "run-" <> Base.encode16(:crypto.strong_rand_bytes(6), case: :lower)
+  end
+
+  defp auto_approval_label(%Snapshot{program: %Program{states: states}, current_state: state}) do
+    case Map.get(states, state) do
+      %StateDefinition{type: :approval, on: on} when map_size(on) > 0 ->
+        label =
+          cond do
+            Map.has_key?(on, :approve) -> :approve
+            Map.has_key?(on, :done) -> :done
+            true -> on |> Map.keys() |> Enum.reject(&(&1 == :reject)) |> List.first()
+          end
+
+        if label, do: {:ok, label}, else: {:error, :no_approval_label}
+
+      _ ->
+        {:error, :not_approval}
+    end
   end
 
   defp maybe_start(pid, %Program{initial: initial, states: states}) do

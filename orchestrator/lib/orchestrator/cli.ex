@@ -1,8 +1,9 @@
 defmodule Orchestrator.CLI do
-  @moduledoc "Command-line interface for workflow runs."
+  @moduledoc "Command-line interface for workflow runs and program visualization."
 
   alias Orchestrator.Log
   alias Orchestrator.Run.Coordinator
+  alias Orchestrator.Visualize
   alias Orchestrator.Workspace
 
   @doc "Entry point for the orchestrator command-line interface."
@@ -33,14 +34,8 @@ defmodule Orchestrator.CLI do
       ["run", program_path | _opts] ->
         dispatch_run(program_path)
 
-      ["status", run_id] ->
-        dispatch_status(run_id)
-
-      ["approve", run_id, label] ->
-        dispatch_approve(run_id, label)
-
-      ["cancel", run_id] ->
-        dispatch_cancel(run_id)
+      ["visualize", program_path | rest] ->
+        dispatch_visualize(program_path, rest)
 
       _ ->
         :usage
@@ -69,6 +64,21 @@ defmodule Orchestrator.CLI do
     end
   end
 
+  defp dispatch_visualize(program_path, rest) do
+    case Visualize.cli_render(program_path, rest) do
+      {:ok, {:stdout, content}} ->
+        IO.puts(content)
+        :ok
+
+      {:ok, {:file, file}} ->
+        IO.puts(file)
+        :ok
+
+      {:error, reason} ->
+        {:error, reason, 1}
+    end
+  end
+
   defp start_and_resume(program_path, opts) do
     case Coordinator.start(program_path, opts) do
       {:ok, run_id} ->
@@ -78,8 +88,6 @@ defmodule Orchestrator.CLI do
             :ok
 
           {:error, :awaiting_approval} ->
-            IO.puts(:stderr, "run_id=#{run_id}")
-            IO.puts(:stderr, "approve: orchestrator approve #{run_id} approve")
             {:error, :awaiting_approval, 2}
 
           {:error, reason} ->
@@ -92,46 +100,9 @@ defmodule Orchestrator.CLI do
     end
   end
 
-  defp dispatch_status(run_id) do
-    case Coordinator.status(run_id) do
-      {:ok, _snap} -> :ok
-      {:error, reason} -> {:error, reason, 1}
-    end
-  end
-
   defp run_opts(%{workspace_root: discovered}) do
     root = System.get_env("ORCHESTRATOR_WORKSPACE", discovered)
     [workspace_root: root]
-  end
-
-  defp dispatch_approve(run_id, label) do
-    with {:ok, label_atom} <- safe_label(label),
-         :ok <- Coordinator.approve(run_id, label_atom),
-         :ok <- Coordinator.resume(run_id, approve_opts()) do
-      :ok
-    else
-      {:error, reason} -> {:error, reason, 1}
-    end
-  end
-
-  defp dispatch_cancel(run_id) do
-    case Coordinator.cancel(run_id) do
-      :ok -> :ok
-      {:error, reason} -> {:error, reason, 1}
-    end
-  end
-
-  defp safe_label(label) do
-    {:ok, String.to_existing_atom(label)}
-  rescue
-    ArgumentError -> {:error, :invalid_label}
-  end
-
-  defp approve_opts do
-    case System.get_env("ORCHESTRATOR_WORKSPACE") do
-      nil -> []
-      root -> [workspace_root: root]
-    end
   end
 
   defp format_error(:invalid_program_path),
@@ -141,22 +112,27 @@ defmodule Orchestrator.CLI do
     do: "program must live under a .orchestrator/ directory (workspace root is its parent)"
 
   defp format_error(:awaiting_approval),
-    do: "workflow awaiting approval — use: orchestrator approve <run-id> <label>"
+    do: "workflow stopped at an approval gate that could not be auto-approved"
 
+  defp format_error({:graphviz_unavailable, %ErlangError{original: :enoent}}),
+    do:
+      "graphviz `dot` not found on PATH — run inside `devenv shell` (graphviz is in devenv.nix) or use --format dot"
+
+  defp format_error({:graphviz_unavailable, reason}),
+    do: "graphviz render failed (install `dot` or use --format dot): #{inspect(reason)}"
+
+  defp format_error(reason) when is_binary(reason), do: reason
   defp format_error(reason), do: "workflow failed: #{inspect(reason)}"
 
   defp print_success(["run" | _]), do: IO.puts("workflow finished")
-  defp print_success(["approve" | _]), do: IO.puts("approved")
-  defp print_success(["cancel" | _]), do: IO.puts("cancelled")
+  defp print_success(["visualize" | _]), do: :ok
   defp print_success(_), do: :ok
 
   defp usage do
     IO.puts(:stderr, """
     Usage:
       orchestrator run </full/path/to/program.yml>
-      orchestrator status <run-id>
-      orchestrator approve <run-id> <label>
-      orchestrator cancel <run-id>
+      orchestrator visualize </full/path/to/program.yml> [--format dot|png|svg] [--out <basename>]
 
     Workspace root is inferred from the program path (parent of .orchestrator/).
     Override with ORCHESTRATOR_WORKSPACE if needed.

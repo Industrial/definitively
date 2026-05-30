@@ -1,0 +1,13 @@
+program:
+  id: reject_only
+  version: 1
+  initial: gate
+states:
+  gate:
+    type: approval
+    prompt: "manual only"
+    on:
+      reject: failed
+  failed:
+    type: final
+nodes: {}

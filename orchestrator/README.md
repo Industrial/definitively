@@ -24,6 +24,18 @@ Workspace root is the parent of `.orchestrator/`. Override with `ORCHESTRATOR_WO
 
 Set `ORCHESTRATOR_LOG_LEVEL` (`TRACE` … `ERROR`, default `INFO`) for run visibility.
 
+
+## Visualize a program
+
+Render the workflow graph (Graphviz DOT by default):
+
+```bash
+orchestrator visualize "$PWD/../.orchestrator/programs/dev-quality-loop.yml"
+orchestrator visualize program.yml --format png --out /tmp/dev-quality-loop
+```
+
+Requires the `dot` binary for `--format png` or `svg`.
+
 ## Development (devenv)
 
 
