@@ -31,9 +31,23 @@ tasks:
     options:
       cache: true
       outputStyle: buffer-only-failure
+  coverage:
+    description: 'mix test --cover (fails below test_coverage threshold in mix.exs)'
+    deps: ['~:lint']
+    command: mix
+    args: [test, --cover]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - 'test/**/*'
+      - 'mix.exs'
+      - 'mix.lock'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
   build:
     description: 'mix compile --warnings-as-errors'
-    deps: ['~:test']
+    deps: ['~:coverage']
     command: mix
     args: [compile, --warnings-as-errors]
     inputs:

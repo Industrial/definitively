@@ -232,7 +232,7 @@ in {
         export TMPDIR="$DEVENV_ROOT/tmp"
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
-        moon run :format :lint :build
+        moon run :format :lint :coverage :build
       '';
     };
 

@@ -8,6 +8,7 @@ defmodule Orchestrator.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       description: "FSM workflow orchestrator for CLI and LLM tasks",
+      test_coverage: [summary: [threshold: 90]],
       deps: deps()
     ]
   end
