@@ -1,24 +1,24 @@
 {
-  "version": 1,
-  "hooks": {
-    "beforeShellExecution": [
-      {
-        "command": ".cursor/hooks/enforce-devenv.sh",
-        "timeout": 5
-      }
-    ],
-    "afterFileEdit": [
-      {
-        "command": ".cursor/hooks/format-after-edit.sh",
-        "timeout": 30
-      }
-    ],
-    "preToolUse": [
-      {
-        "command": ".cursor/hooks/block-native-web-search.sh",
-        "matcher": "WebSearch|WebFetch",
-        "timeout": 5
-      }
-    ]
-  }
+	"version": 1,
+	"hooks": {
+		"beforeShellExecution": [
+			{
+				"command": ".cursor/hooks/enforce-devenv.sh",
+				"timeout": 5
+			}
+		],
+		"afterFileEdit": [
+			{
+				"command": ".cursor/hooks/format-after-edit.sh",
+				"timeout": 30
+			}
+		],
+		"preToolUse": [
+			{
+				"command": ".cursor/hooks/block-native-web-search.sh",
+				"matcher": "WebSearch|WebFetch",
+				"timeout": 5
+			}
+		]
+	}
 }

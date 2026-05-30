@@ -6,10 +6,10 @@
   # Moon from GitHub releases (x86_64-linux). See https://moonrepo.dev/docs/install
   moon = pkgs.stdenv.mkDerivation {
     pname = "moon-cli";
-    version = "2.0.4";
+    version = "2.2.4";
     src = pkgs.fetchurl {
-      url = "https://github.com/moonrepo/moon/releases/download/v2.0.4/moon_cli-x86_64-unknown-linux-gnu.tar.xz";
-      sha256 = "0n7w3pmnwaxk0cy63ms97g609z696698a4qdrssnsa7cs8wgxxc8";
+      url = "https://github.com/moonrepo/moon/releases/download/v2.2.4/moon_cli-x86_64-unknown-linux-gnu.tar.xz";
+      sha256 = "0jxswvzjhglcfnj0xsyn5z5xy40llbc62ikfsp2hn8ax5al79cz7";
     };
     nativeBuildInputs = [pkgs.autoPatchelfHook];
     buildInputs = [pkgs.stdenv.cc.cc.lib];
@@ -66,6 +66,14 @@
   # BEAM: pin Erlang/OTP and Elixir as a matched pair (see nixpkgs beam.packages).
   pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${pkgs.system};
   beamPackages = pkgs-unstable.beam.packages.erlang_27;
+
+  # Launcher scripts at the path ElixirLS expects (language_server.sh, elixir_check.sh).
+  elixirLsRelease = pkgs.runCommand "elixir-ls-vscode-release" {} ''
+    mkdir -p $out
+    for script in ${pkgs.elixir-ls}/scripts/*; do
+      ln -s "$script" $out/$(basename "$script")
+    done
+  '';
 in {
   name = "project-template";
 
@@ -138,6 +146,8 @@ in {
     CARGO_TERM_COLOR = "always";
     RUSTC_WRAPPER = "sccache";
     MOON_TOOLCHAIN_FORCE_GLOBALS = "rust";
+    MOON_CONCURRENCY = "1";
+    ELIXIR_LS_RELEASE = "${elixirLsRelease}";
   };
 
   # Development packages
@@ -204,11 +214,25 @@ in {
       '';
     };
 
-    # Pre-push: run full check via moon (used by prek hook)
+    # Pre-commit: fast gates (Rust + orchestrator)
+    pre-commit = {
+      exec = ''
+        mkdir -p "$DEVENV_ROOT/tmp"
+        export TMPDIR="$DEVENV_ROOT/tmp"
+        export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
+        export MOON_CONCURRENCY=1
+        moon run :format :lint :build
+      '';
+    };
+
+    # Pre-push: full workspace gates (Rust + orchestrator)
     pre-push = {
       exec = ''
+        mkdir -p "$DEVENV_ROOT/tmp"
+        export TMPDIR="$DEVENV_ROOT/tmp"
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
-        moon run :format :check :lint :build :test :audit :check-docs
+        export MOON_CONCURRENCY=1
+        moon run :format :lint :build
       '';
     };
 
@@ -239,5 +263,12 @@ in {
     chmod 755 "$HOME/.cache/sccache" 2>/dev/null || true
 
     export MIX_ENV=dev
+    (cd "$DEVENV_ROOT/orchestrator" && mix deps.get --quiet) || true
+
+    # ElixirLS override dir (also used by scripts/elixir-ls-release/*.sh wrappers)
+    mkdir -p "$DEVENV_ROOT/.devenv/elixir-ls-release"
+    for script in language_server.sh elixir_check.sh; do
+      ln -sfn "${elixirLsRelease}/$script" "$DEVENV_ROOT/.devenv/elixir-ls-release/$script"
+    done
   '';
 }

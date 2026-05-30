@@ -10,6 +10,7 @@ hasher:
 # Rust workspace crates
 projects:
   - 'crates/*'
+  - 'orchestrator'
   - '.'
 vcs:
   client: 'git'

@@ -37,8 +37,8 @@
 .idea/
 .pre-commit-config.yaml
 .pre-commit-config.yaml
-.vscode
-.vscode/
+.vscode/*
+!.vscode/settings.json
 /.roam/
 /.serena/
 /.tmp

@@ -1,0 +1,46 @@
+# Orchestrator Mix app — format, compile, credo, test (moon project root: this directory).
+# https://moonrepo.dev/docs/config/project
+id: orchestrator
+language: elixir
+layer: application
+tasks:
+  lint:
+    description: 'credo --strict'
+    deps: ['project-template:format']
+    command: mix
+    args: [credo, --strict]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - '.credo.exs'
+      - 'mix.exs'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
+  test:
+    description: 'mix test'
+    deps: ['~:lint']
+    command: mix
+    args: [test]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - 'test/**/*'
+      - 'mix.exs'
+      - 'mix.lock'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
+  build:
+    description: 'mix compile --warnings-as-errors'
+    deps: ['~:test']
+    command: mix
+    args: [compile, --warnings-as-errors]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - 'mix.exs'
+      - 'mix.lock'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure

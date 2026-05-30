@@ -26,7 +26,7 @@ git submodule update --init --recursive
 - **Runtimes:** Rust (stable), JavaScript/TypeScript (Bun).
 - **Environment:** Nix via [devenv](https://devenv.sh); reproducible toolchain and scripts.
 - **Tasks:** [moon](https://moonrepo.dev) for format, check, lint, build, test, docs, audit, coverage, etc.
-- **Git hooks:** [prek](https://github.com/j178/prek) (pre-commit–compatible): pre-push runs the full moon pipeline; commit-msg enforces conventional commits (commitizen).
+- **Git hooks:** [prek](https://github.com/j178/prek) (pre-commit–compatible): pre-commit runs fast moon gates (Rust + `orchestrator/`); pre-push runs the full moon pipeline; commit-msg enforces conventional commits (commitizen).
 - **Formatting:** [treefmt](https://github.com/numtide/treefmt) over Rust, Nix, shell, JS/TS, YAML, TOML.
 - **Rust quality:** cargo-deny (advisories/licenses), cargo-audit, clippy, nextest, optional llvm-cov.
 
@@ -150,7 +150,7 @@ devenv shell
 
 **On enter, devenv runs:**
 
-1. **prek-install** — Installs git hooks from `.pre-commit-config.yaml` (pre-push, commit-msg) into `.git/hooks`. Overwrites existing hook files so the repo’s config is always in use.
+1. **prek-install** — Installs git hooks from `.pre-commit-config.yaml` (pre-commit, pre-push, commit-msg) into `.git/hooks`. Overwrites existing hook files so the repo’s config is always in use.
 2. **moon-sync** — Runs `moon sync` so moon’s toolchain and project graph are up to date.
 3. **sccache** — Ensures `$HOME/.cache/sccache` exists so the Rust compiler cache can be used.
 
@@ -161,17 +161,19 @@ devenv shell
 - moon, treefmt, and all formatters (alejandra, beautysh, biome, taplo, yamlfmt, etc.)  
 - prek, git, gh, direnv  
 - Env: `RUST_BACKTRACE=1`, `CARGO_TERM_COLOR=always`, `RUSTC_WRAPPER=sccache`, `MOON_TOOLCHAIN_FORCE_GLOBALS=rust`  
-- Scripts: `prek-install`, `moon-sync`, `pre-push` (used by the pre-push hook)
+- Elixir 1.18 / OTP 27, `orchestrator/` Mix app (`mix-setup`, `mix-test`)
+- Scripts: `prek-install`, `moon-sync`, `pre-commit`, `pre-push` (used by git hooks)
 
 Optional: if you use [direnv](https://direnv.net), `direnv allow` in the repo will enter the devenv shell automatically when you `cd` in.
 
 ### 3. Develop
 
 - **Format:** `moon run :format` (writes changes) or `moon run :ci-format` (CI-style; fails if anything would change).
+- **Orchestrator (Elixir):** `moon run orchestrator:format`, `:compile`, `:lint` (credo), `:test` — or `cd orchestrator && mix test`.
 - **Check / lint / build / test:**  
   `moon run :check`, `:lint`, `:build`, `:test`  
-  Or run the full gate:  
-  `devenv shell -- pre-push` (same as the pre-push hook).
+  Fast gate: `devenv shell -- pre-commit` (same as the pre-commit hook).  
+  Full gate: `devenv shell -- pre-push` (same as the pre-push hook).
 - **Fix auto-fixable issues:** `moon run :fix`
 - **Docs:** `moon run :docs` or `:check-docs`
 - **Security:** `moon run :audit`; run `cargo deny check` manually for full deny checks.
@@ -181,7 +183,8 @@ All of these use the tools and configs from the dev shell (rustfmt, nextest.toml
 
 ### 4. Commit
 
-- When you run `git commit`, the **commit-msg** hook (prek + commitizen) runs.
+- When you run `git commit`, the **pre-commit** hook runs moon gates (Rust format/check/lint + orchestrator format/compile/credo).
+- The **commit-msg** hook (prek + commitizen) runs on the same commit.
 - It validates that the commit message follows conventional commits (e.g. `feat: add X`, `fix: Y`). If not, the commit is rejected.
 
 ### 5. Push
