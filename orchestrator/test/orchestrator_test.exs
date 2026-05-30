@@ -2,10 +2,18 @@ defmodule OrchestratorTest do
   use ExUnit.Case, async: true
 
   alias Orchestrator.Outcome
+  alias Orchestrator.Spec.Loader
   alias Orchestrator.Workflow.Engine
 
+  @fixture Path.expand("fixtures/dev_quality_loop.yml", Path.dirname(__ENV__.file))
+
+  defp start_engine! do
+    {:ok, program} = Loader.load(@fixture)
+    :gen_statem.start(Engine, [program: program], [])
+  end
+
   test "lint/fix/commit happy path via gen_statem" do
-    {:ok, pid} = :gen_statem.start(Engine, [], [])
+    {:ok, pid} = start_engine!()
 
     assert :ok = :gen_statem.call(pid, {:start, :default})
     assert :ok = :gen_statem.call(pid, {:node_result, Outcome.failure()})
@@ -29,19 +37,19 @@ defmodule OrchestratorTest do
     assert {Engine, :start_link, [[]]} = spec.start
   end
 
-  test "linting rejects unknown outcomes" do
-    {:ok, pid} = :gen_statem.start(Engine, [], [])
+  test "lint rejects unknown outcomes" do
+    {:ok, pid} = start_engine!()
 
     assert :ok = :gen_statem.call(pid, {:start, :default})
 
     assert {:error, :unknown_outcome} =
-             :gen_statem.call(pid, {:node_result, %Outcome{status: :partial}})
+             :gen_statem.call(pid, {:node_result, %Outcome{status: :unknown}})
 
     :ok = :gen_statem.stop(pid)
   end
 
   test "fixing retries until fix succeeds" do
-    {:ok, pid} = :gen_statem.start(Engine, [], [])
+    {:ok, pid} = start_engine!()
 
     assert :ok = :gen_statem.call(pid, {:start, :default})
     assert :ok = :gen_statem.call(pid, {:node_result, Outcome.failure()})
@@ -55,7 +63,7 @@ defmodule OrchestratorTest do
   end
 
   test "committing rejects failed node results" do
-    {:ok, pid} = :gen_statem.start(Engine, [], [])
+    {:ok, pid} = start_engine!()
 
     assert :ok = :gen_statem.call(pid, {:start, :default})
     assert :ok = :gen_statem.call(pid, {:node_result, Outcome.success()})
@@ -67,7 +75,7 @@ defmodule OrchestratorTest do
   end
 
   test "unexpected casts are ignored in each state" do
-    {:ok, pid} = :gen_statem.start(Engine, [], [])
+    {:ok, pid} = start_engine!()
 
     :gen_statem.cast(pid, :noise)
     assert :ok = :gen_statem.call(pid, {:start, :default})

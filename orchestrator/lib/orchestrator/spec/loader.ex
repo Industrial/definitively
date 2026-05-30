@@ -96,8 +96,9 @@ defmodule Orchestrator.Spec.Loader do
   defp parse_state(name, _, path),
     do: {:error, Error.new(:invalid_state, "state #{name} must be a map", path)}
 
-  defp parse_state_type(type, _path, _name) when type in ["passive", "active", "approval", "final"],
-    do: {:ok, String.to_atom(type)}
+  defp parse_state_type(type, _path, _name)
+       when type in ["passive", "active", "approval", "final"],
+       do: {:ok, String.to_atom(type)}
 
   defp parse_state_type(type, path, name),
     do:

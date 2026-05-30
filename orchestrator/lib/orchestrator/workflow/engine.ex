@@ -1,19 +1,29 @@
 defmodule Orchestrator.Workflow.Engine do
   @moduledoc """
-  Workflow runner as an OTP `:gen_statem`.
+  Data-driven workflow runner as `:gen_statem`.
 
-  Example lint/fix/commit loop:
-
-      idle --start--> linting
-      linting --failure--> fixing --success--> linting
-      linting --success--> committing --success--> done
+  States and transitions come from a loaded `Orchestrator.Domain.Program`.
+  Node execution is external in v1 — callers send `{:node_result, outcome}` or
+  `{:node_finished, outcome}` after running a node.
   """
 
   @behaviour :gen_statem
 
+  alias Orchestrator.Domain.{Program, StateDefinition, TransitionTable}
   alias Orchestrator.Outcome
+  alias Orchestrator.Spec.Loader
+
+  @fixture_path Path.expand("../../../test/fixtures/dev_quality_loop.yml", __DIR__)
+
+  @type data :: %{
+          program: Program.t(),
+          table: TransitionTable.t(),
+          history: [map()],
+          attempts: %{atom() => non_neg_integer()}
+        }
 
   @doc false
+  @spec child_spec(keyword()) :: Supervisor.child_spec()
   def child_spec(opts) do
     %{
       id: __MODULE__,
@@ -24,75 +34,152 @@ defmodule Orchestrator.Workflow.Engine do
   end
 
   @doc false
+  @spec start_link(keyword()) :: :gen_statem.start_ret()
   def start_link(opts \\ []) do
-    :gen_statem.start_link({:local, __MODULE__}, __MODULE__, opts, [])
+    name = Keyword.get(opts, :name, __MODULE__)
+    program = Keyword.get_lazy(opts, :program, &load_default_program!/0)
+    :gen_statem.start_link({:local, name}, __MODULE__, [program: program], [])
   end
 
   @impl :gen_statem
   @doc false
-  def callback_mode, do: :state_functions
+  def callback_mode, do: :handle_event_function
 
   @impl :gen_statem
   @doc false
-  def init(_opts), do: {:ok, :idle, %{attempt: 0}}
+  def init(opts) do
+    program =
+      case opts do
+        [program: %Program{} = program] -> program
+        _ -> load_default_program!()
+      end
 
-  @doc false
-  def idle({:call, from}, {:start, _workflow}, data) do
-    {:next_state, :linting, %{data | attempt: 1}, [{:reply, from, :ok}]}
+    table = TransitionTable.build(program)
+
+    {:ok, program.initial,
+     %{
+       program: program,
+       table: table,
+       history: [],
+       attempts: %{}
+     }}
   end
 
+  @impl :gen_statem
   @doc false
-  def idle(_event, _content, _data), do: :keep_state_and_data
-
-  @doc false
-  def linting({:call, from}, {:node_result, %Outcome{status: :success}}, data) do
-    {:next_state, :committing, data, [{:reply, from, :ok}]}
+  def handle_event({:call, from}, {:start, _workflow}, state, data) do
+    with %StateDefinition{type: :passive} <- state_def(data, state),
+         {:ok, next} <- TransitionTable.next(data.table, state, :start) do
+      {:next_state, next, record(data, state, :start, next), [{:reply, from, :ok}]}
+    else
+      _ -> {:keep_state_and_data, [{:reply, from, {:error, :invalid_start}}]}
+    end
   end
 
-  @doc false
-  def linting({:call, from}, {:node_result, %Outcome{status: :failure}}, data) do
-    {:next_state, :fixing, data, [{:reply, from, :ok}]}
+  def handle_event({:call, from}, {:node_result, outcome}, state, data) do
+    handle_node_finished(from, state, data, outcome)
   end
 
-  @doc false
-  def linting({:call, from}, {:node_result, _outcome}, data) do
-    {:keep_state, data, [{:reply, from, {:error, :unknown_outcome}}]}
+  def handle_event({:call, from}, {:node_finished, outcome}, state, data) do
+    handle_node_finished(from, state, data, outcome)
   end
 
-  @doc false
-  def linting(_event, _content, _data), do: :keep_state_and_data
-
-  @doc false
-  def fixing({:call, from}, {:node_result, %Outcome{status: :success}}, data) do
-    {:next_state, :linting, data, [{:reply, from, :ok}]}
+  def handle_event({:call, from}, {:approve, label}, state, data) do
+    with %StateDefinition{type: :approval} <- state_def(data, state),
+         {:ok, next} <- TransitionTable.next(data.table, state, label) do
+      {:next_state, next, record(data, state, label, next), [{:reply, from, :ok}]}
+    else
+      _ -> {:keep_state_and_data, [{:reply, from, {:error, :invalid_approve}}]}
+    end
   end
 
-  @doc false
-  def fixing({:call, from}, {:node_result, _outcome}, data) do
-    {:keep_state, data, [{:reply, from, :retry}]}
+  def handle_event({:call, from}, :cancel, _state, data) do
+    case final_on_cancel(data) do
+      {:ok, next} ->
+        {:next_state, next, record(data, :cancel, :cancel, next), [{:reply, from, :ok}]}
+
+      :error ->
+        {:keep_state_and_data, [{:reply, from, {:error, :cannot_cancel}}]}
+    end
   end
 
-  @doc false
-  def fixing(_event, _content, _data), do: :keep_state_and_data
+  def handle_event({:call, from}, :noop, state, data) do
+    case state_def(data, state) do
+      %StateDefinition{type: :final} ->
+        reply = if state == :failed, do: :failed, else: :finished
+        {:keep_state_and_data, [{:reply, from, reply}]}
 
-  @doc false
-  def committing({:call, from}, {:node_result, %Outcome{status: :success}}, data) do
-    {:next_state, :done, data, [{:reply, from, :ok}]}
+      _ ->
+        {:keep_state_and_data, [{:reply, from, {:error, :not_final}}]}
+    end
   end
 
-  @doc false
-  def committing({:call, from}, _event, data) do
-    {:keep_state, data, [{:reply, from, {:error, :commit_failed}}]}
+  def handle_event(_event_type, _event, _state, _data), do: :keep_state_and_data
+
+  @doc "Loads the `dev_quality_loop` fixture program from `test/fixtures`."
+  @spec load_default_program!() :: Program.t()
+  def load_default_program! do
+    case Loader.load(@fixture_path) do
+      {:ok, program} -> program
+      {:error, err} -> raise "default program load failed: #{inspect(err)}"
+    end
   end
 
-  @doc false
-  def committing(_event, _content, _data), do: :keep_state_and_data
+  defp handle_node_finished(from, state, data, %Outcome{} = outcome) do
+    case state_def(data, state) do
+      %StateDefinition{type: :active} ->
+        label = outcome_label(outcome)
+        transition_active(from, state, data, label, outcome)
 
-  @doc false
-  def done({:call, from}, _event, data) do
-    {:keep_state, data, [{:reply, from, :finished}]}
+      _ ->
+        {:keep_state_and_data, [{:reply, from, {:error, :not_active}}]}
+    end
   end
 
-  @doc false
-  def done(_event, _content, _data), do: :keep_state_and_data
+  defp transition_active(from, state, data, label, outcome) do
+    case TransitionTable.next(data.table, state, label) do
+      {:ok, ^state} ->
+        {:keep_state, bump_attempt(data, state), [{:reply, from, :retry}]}
+
+      {:ok, next} ->
+        reply = active_reply(state, label, outcome, next)
+        {:next_state, next, record(data, state, label, next), [{:reply, from, reply}]}
+
+      {:error, :no_transition} ->
+        {:keep_state, data, [{:reply, from, {:error, :unknown_outcome}}]}
+    end
+  end
+
+  defp active_reply(:commit, :failure, %Outcome{status: :failure}, :failed),
+    do: {:error, :commit_failed}
+
+  defp active_reply(_state, _label, _outcome, _next), do: :ok
+
+  defp outcome_label(%Outcome{verdict_label: label}) when not is_nil(label), do: label
+
+  defp outcome_label(%Outcome{status: status}) when status in [:success, :failure, :partial],
+    do: status
+
+  defp outcome_label(%Outcome{status: :unknown}), do: :unknown
+  defp outcome_label(_), do: :unknown
+
+  defp state_def(%{program: %{states: states}}, state) do
+    Map.get(states, state)
+  end
+
+  defp record(data, from, label, to) do
+    event = %{from: from, label: label, to: to, at: System.system_time(:millisecond)}
+    %{data | history: data.history ++ [event]}
+  end
+
+  defp bump_attempt(data, state) do
+    %{data | attempts: Map.update(data.attempts, state, 1, &(&1 + 1))}
+  end
+
+  defp final_on_cancel(%{program: %{states: states}}) do
+    case Map.get(states, :failed) do
+      %StateDefinition{type: :final} -> {:ok, :failed}
+      _ -> :error
+    end
+  end
 end

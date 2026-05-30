@@ -5,23 +5,25 @@ defmodule Orchestrator do
   Core modules:
 
     * `Orchestrator.Outcome` — rich node results (beyond exit codes)
-    * `Orchestrator.Workflow.Engine` — `:gen_statem` workflow runner
+    * `Orchestrator.Workflow.Engine` — data-driven `:gen_statem` workflow runner
+    * `Orchestrator.Spec.Loader` — YAML program loader
   """
 
+  alias Orchestrator.Outcome
   alias Orchestrator.Workflow.Engine
 
   @doc """
-  Runs the default lint → fix → commit state machine until `:done`.
+  Runs the `dev_quality_loop` fixture program: lint → fix → commit → done.
   """
   @spec run_demo() :: :ok | {:error, term()}
   def run_demo do
-    {:ok, pid} = :gen_statem.start(Engine, [], [])
+    {:ok, pid} = Engine.start_link([])
 
     :ok = :gen_statem.call(pid, {:start, :default})
-    :ok = :gen_statem.call(pid, {:node_result, Orchestrator.Outcome.failure()})
-    :ok = :gen_statem.call(pid, {:node_result, Orchestrator.Outcome.success()})
-    :ok = :gen_statem.call(pid, {:node_result, Orchestrator.Outcome.success()})
-    :ok = :gen_statem.call(pid, {:node_result, Orchestrator.Outcome.success()})
+    :ok = :gen_statem.call(pid, {:node_result, Outcome.failure()})
+    :ok = :gen_statem.call(pid, {:node_result, Outcome.success()})
+    :ok = :gen_statem.call(pid, {:node_result, Outcome.success()})
+    :ok = :gen_statem.call(pid, {:node_result, Outcome.success()})
     :finished = :gen_statem.call(pid, :noop)
 
     :ok = :gen_statem.stop(pid)
