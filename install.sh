@@ -79,7 +79,7 @@ resolve_tag() {
     local json tag
     json="$(curl -fsSL -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/${REPO}/releases?per_page=30")"
-    tag="$(printf '%s\n' "$json" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\(orchestrator-v[^"]*\)".*/\1/p' | head -1)"
+    tag="$(printf '%s\n' "$json" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\(orchestrator-v[^"]*\)".*/\1/p' | head -n 1)"
 
     if [[ -z "${tag}" ]]; then
         die "no orchestrator-v* release found at https://github.com/${REPO}/releases"
@@ -139,7 +139,7 @@ if [[ "${VERIFY}" == "1" ]]; then
 fi
 
 tar -xzf "${tmpdir}/${ARCHIVE}" -C "$tmpdir"
-root="$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d -name "orchestrator-${VERSION}-${PLATFORM}" | head -1)"
+root="$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d -name "orchestrator-${VERSION}-${PLATFORM}" | head -n 1)"
 [[ -n "${root}" ]] || die "unexpected tarball layout"
 
 PREFIX="${PREFIX}" BINDIR="${BINDIR}" bash "${root}/install.sh"
