@@ -25,7 +25,13 @@ jobs:
           elixir-version: "1.18"
       - run: mix local.rebar --force && mix local.hex --force
       - run: mix deps.get
-      - run: mix test
+      - run: mix test --cover
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: cover
+          fail_ci_if_error: false
   hex-dry-run:
     runs-on: ubuntu-latest
     defaults:

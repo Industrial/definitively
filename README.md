@@ -1,6 +1,24 @@
-# Project template
+# definitively
 
-Rust + Bun/TypeScript workspace template with Nix (devenv), moon tasks, treefmt, cargo-deny, prek git hooks, and optional Cachix.
+FSM-based workflow orchestrator for CLI commands, LLM sessions, and git steps. Programs are YAML state machines (`:gen_statem`); nodes run shell commands or LLM agents with typed outcomes.
+
+See [orchestrator/README.md](orchestrator/README.md) for CLI usage and [docs/orchestrator-distribution.md](docs/orchestrator-distribution.md) for install channels (devenv, Nix flake, Hex, GitHub releases, Homebrew).
+
+<!-- Badge row 1: CI & quality -->
+[![Orchestrator CI](https://github.com/Industrial/definitively/actions/workflows/orchestrator-ci.yml/badge.svg)](https://github.com/Industrial/definitively/actions/workflows/orchestrator-ci.yml)
+[![Release](https://github.com/Industrial/definitively/actions/workflows/release-orchestrator.yml/badge.svg)](https://github.com/Industrial/definitively/actions/workflows/release-orchestrator.yml)
+[![codecov](https://codecov.io/gh/Industrial/definitively/branch/main/graph/badge.svg)](https://codecov.io/gh/Industrial/definitively)
+
+<!-- Badge row 2: package & docs -->
+[![Hex.pm](https://img.shields.io/hexpm/v/orchestrator.svg)](https://hex.pm/packages/orchestrator)
+[![Documentation](https://img.shields.io/badge/docs-orchestrator-blue.svg)](https://github.com/Industrial/definitively/tree/main/orchestrator#readme)
+
+<!-- Badge row 3: repository health -->
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](orchestrator/LICENSE)
+[![Elixir](https://img.shields.io/badge/elixir-~%3E%201.18-purple.svg)](https://elixir-lang.org)
+[![GitHub Stars](https://img.shields.io/github/stars/Industrial/definitively?style=social)](https://github.com/Industrial/definitively/stargazers)
+
+This repository also contains a Rust + Bun/TypeScript workspace template (devenv, moon, treefmt, prek hooks) used to develop and ship the orchestrator CLI.
 
 ---
 
@@ -9,8 +27,8 @@ Rust + Bun/TypeScript workspace template with Nix (devenv), moon tasks, treefmt,
 This repo uses git submodules under `.cursor/` (`agency-agents`, `microsoft-rust-training`). Clone with submodules in one go:
 
 ```bash
-git clone --recurse-submodules <repo-url>
-cd <repo>
+git clone --recurse-submodules git@github.com:Industrial/definitively.git
+cd definitively
 ```
 
 If you already cloned without submodules, init and update them:
@@ -136,8 +154,8 @@ Add the Cachix auth token as a repository secret (`CACHIX_AUTH_TOKEN`) if you wa
 ### 1. Clone the repo
 
 ```bash
-git clone --recurse-submodules <repo-url>
-cd <repo>
+git clone --recurse-submodules git@github.com:Industrial/definitively.git
+cd definitively
 ```
 
 - `.cursor/agency-agents` and `.cursor/microsoft-rust-training` are **git submodules**; `--recurse-submodules` pulls them. Without it, run `git submodule update --init --recursive` later.
@@ -246,4 +264,34 @@ Run with: `moon run :<task>` or `devenv shell -- moon run :<task>` from outside 
 2. **Develop** with moon tasks (`:format`, `:check`, `:lint`, `:build`, `:test`, etc.).  
 3. **Commit** → commitizen checks message.  
 4. **Push** → pre-push runs full moon pipeline; push only if it passes.  
-5. **CI** (when added) runs the same commands (e.g. `:ci-format` and the same full pipeline) inside devenv so results match local and pre-push.
+5. **CI** runs orchestrator tests and coverage on push/PR; Rust gates run locally via pre-push.
+
+---
+
+## Coverage
+
+[![codecov](https://codecov.io/gh/Industrial/definitively/branch/main/graph/badge.svg)](https://codecov.io/gh/Industrial/definitively)
+
+CI runs `mix test --cover` in `orchestrator/`; Mix enforces **≥ 90%** coverage (`test_coverage` in `orchestrator/mix.exs`). Upload to Codecov uses `CODECOV_TOKEN` when configured.
+
+![Coverage sunburst](https://codecov.io/gh/Industrial/definitively/branch/main/graphs/sunburst.svg)
+
+---
+
+## Star history
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Industrial/definitively&type=Date)](https://star-history.com/#Industrial/definitively&Date)
+
+---
+
+## Contributors
+
+Thanks to everyone who has contributed patches, reported issues, or improved the workflows.
+
+[![Contributors](https://contrib.rocks/image?repo=Industrial/definitively)](https://github.com/Industrial/definitively/graphs/contributors)
+
+---
+
+## License
+
+The orchestrator CLI is licensed under [MIT](orchestrator/LICENSE).
