@@ -34,10 +34,6 @@ jobs:
           mix local.hex --force
           mix deps.get
           mix test --cover
-      - name: Validate Hex API key
-        env:
-          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
-        run: ./scripts/release/validate-hex-key.sh
       - name: Validate Hex package tarball
         working-directory: orchestrator
         run: mix hex.build
@@ -166,6 +162,11 @@ jobs:
           MIX_ENV: prod
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: |
+          if [[ -z "${HEX_API_KEY}" ]]; then
+            echo "HEX_API_KEY not configured; skipping Hex publish"
+            exit 0
+          fi
+          ../scripts/release/validate-hex-key.sh
           mix local.rebar --force
           mix local.hex --force
           mix deps.get --only prod
