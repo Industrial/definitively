@@ -14,6 +14,9 @@ todos:
   - id: migrate-programs
     content: Replace cursor_agent anchors; declare plan_file input on plan-mission; add .definitively/agents/cursor.yml
     status: pending
+  - id: workspace-gitignore
+    content: Gitignore `.definitively/state/*`; init emits `.definitively/.gitignore` + `state/.gitkeep`
+    status: completed
   - id: env-init-docs
     content: Update devenv/env.example, init templates, book chapters; bump to 0.4.0 with migration note
     status: pending
