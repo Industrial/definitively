@@ -175,12 +175,16 @@ defmodule Definitively.Spec.Loader do
     with {:ok, node_id} <- atom_or_error(id, path, "nodes.#{id}"),
          {:ok, kind} <- parse_node_kind(Map.get(defn, "kind"), path, id),
          {:ok, command} <- parse_command(Map.get(defn, "command"), path, id),
+         {:ok, action} <- parse_action(Map.get(defn, "action"), path, id),
+         {:ok, options} <- parse_options(Map.get(defn, "options"), path, id),
          {:ok, outcome} <- parse_outcome(Map.get(defn, "outcome", %{}), path, id) do
       {:ok,
        %NodeDefinition{
          id: node_id,
          kind: kind,
          command: command,
+         action: action,
+         options: options,
          cwd: Map.get(defn, "cwd"),
          timeout_ms: Map.get(defn, "timeout_ms"),
          model: Map.get(defn, "model"),
@@ -193,17 +197,37 @@ defmodule Definitively.Spec.Loader do
   defp parse_node(id, _, path),
     do: {:error, Error.new(:invalid_node, "node #{id} must be a map", path)}
 
-  defp parse_node_kind(kind, _path, _id) when kind in ["cli", "llm"],
+  defp parse_node_kind(kind, _path, _id) when kind in ["cli", "llm", "git", "gh"],
     do: {:ok, String.to_atom(kind)}
 
   defp parse_node_kind(_kind, path, id),
-    do: {:error, Error.new(:invalid_node_kind, "nodes.#{id}.kind must be cli or llm", path)}
+    do:
+      {:error,
+       Error.new(
+         :invalid_node_kind,
+         "nodes.#{id}.kind must be cli, llm, git, or gh",
+         path
+       )}
 
   defp parse_command(nil, _path, _id), do: {:ok, nil}
   defp parse_command(cmd, _path, _id) when is_list(cmd), do: {:ok, Enum.map(cmd, &to_string/1)}
 
   defp parse_command(_cmd, path, id),
     do: {:error, Error.new(:invalid_command, "nodes.#{id}.command must be a list", path)}
+
+  defp parse_action(nil, _path, _id), do: {:ok, nil}
+
+  defp parse_action(action, path, id) when is_binary(action),
+    do: atom_or_error(action, path, "nodes.#{id}.action")
+
+  defp parse_action(_action, path, id),
+    do: {:error, Error.new(:invalid_action, "nodes.#{id}.action must be a string", path)}
+
+  defp parse_options(nil, _path, _id), do: {:ok, nil}
+  defp parse_options(options, _path, _id) when is_map(options), do: {:ok, options}
+
+  defp parse_options(_options, path, id),
+    do: {:error, Error.new(:invalid_options, "nodes.#{id}.options must be a map", path)}
 
   defp reduce_outcome_label({label, clauses}, {:ok, acc}, path, id) do
     with {:ok, parsed} <- parse_outcome_clauses(clauses, path, id, label),

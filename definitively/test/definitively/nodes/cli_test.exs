@@ -52,5 +52,4 @@ defmodule Definitively.Nodes.CliTest do
     assert {:ok, %{stdout: stdout}} = Cli.execute(node, ctx)
     assert String.trim(stdout) == Path.expand(".", tmp)
   end
-
 end

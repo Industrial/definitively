@@ -15,8 +15,10 @@ states:
 
 nodes:
   <id>:
-    kind: cli | llm
-    command: [argv, ...]
+    kind: cli | llm | git | gh
+    command: [argv, ...]       # cli, llm
+    action: status | commit | pr_create | run_watch | ...
+    options: { key: value }    # git, gh
     cwd: path
     timeout_ms: integer
     model: string       # llm

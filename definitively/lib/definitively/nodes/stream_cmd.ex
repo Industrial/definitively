@@ -1,6 +1,6 @@
 defmodule Definitively.Nodes.StreamCmd do
-
   alias Definitively.Log
+
   @moduledoc """
   Runs a subprocess with stdout/stderr streamed to the terminal and captured for callers.
   """

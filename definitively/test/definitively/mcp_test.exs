@@ -64,7 +64,9 @@ defmodule Definitively.MCPTest do
 
   test "invalid params" do
     assert {:error, %{error: %{code: :invalid_params}}} = MCP.handle_tool("workflow_run", %{})
-    assert {:error, %{error: %{code: :invalid_params}}} = MCP.handle_tool("workflow_visualize", %{})
+
+    assert {:error, %{error: %{code: :invalid_params}}} =
+             MCP.handle_tool("workflow_visualize", %{})
   end
 
   test "workflow_run accepts workspace_root" do

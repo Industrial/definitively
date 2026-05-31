@@ -6,11 +6,11 @@ defmodule Definitively.MixProject do
   def project do
     [
       app: :definitively,
-      version: "0.2.1",
+      version: "0.3.0",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       build_embedded: Mix.env() == :prod,
-      description: "FSM workflow orchestrator for CLI and LLM tasks",
+      description: "FSM workflow orchestrator for CLI, git, GitHub, and LLM tasks",
       test_coverage: [
         tool: LcovEx,
         output: "cover",

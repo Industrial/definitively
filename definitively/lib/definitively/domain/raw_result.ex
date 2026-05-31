@@ -8,7 +8,8 @@ defmodule Definitively.Domain.RawResult do
           duration_ms: non_neg_integer() | nil,
           timed_out: boolean(),
           signals: map(),
-          llm_json: map() | nil
+          llm_json: map() | nil,
+          data: map() | nil
         }
 
   defstruct exit_code: nil,
@@ -17,5 +18,6 @@ defmodule Definitively.Domain.RawResult do
             duration_ms: nil,
             timed_out: false,
             signals: %{},
-            llm_json: nil
+            llm_json: nil,
+            data: nil
 end

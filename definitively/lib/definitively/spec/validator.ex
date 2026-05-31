@@ -1,19 +1,21 @@
 defmodule Definitively.Spec.Validator do
-
   alias Definitively.Log
   @moduledoc "Cross-checks on a loaded `Program` before execution."
 
-  alias Definitively.Domain.{Program, StateDefinition}
+  alias Definitively.Domain.{NodeDefinition, Program, StateDefinition}
   alias Definitively.Spec.Error
 
   @doc "Runs structural validation checks on a loaded program."
   @spec validate(Program.t()) :: :ok | {:error, Error.t()}
   def validate(%Program{} = program) do
     Log.trace("validating program", program_id: program.id)
+
     [
       &validate_initial/1,
       &validate_state_transitions/1,
       &validate_active_node_refs/1,
+      &validate_node_kind_fields/1,
+      &validate_git_gh_actions/1,
       &validate_final_states/1,
       &validate_reachable_finals/1
     ]
@@ -129,4 +131,59 @@ defmodule Definitively.Spec.Validator do
         visited
     end
   end
+
+  defp validate_node_kind_fields(%Program{nodes: nodes}) do
+    nodes
+    |> Enum.reduce(:ok, fn {id, node}, acc ->
+      if acc != :ok, do: acc, else: check_node_kind_fields(id, node)
+    end)
+  end
+
+  defp check_node_kind_fields(id, %NodeDefinition{kind: :cli, command: nil}) do
+    {:error, Error.new(:missing_command, "cli node #{inspect(id)} requires command")}
+  end
+
+  defp check_node_kind_fields(id, %NodeDefinition{kind: :llm, prompt_file: nil}) do
+    {:error, Error.new(:missing_prompt_file, "llm node #{inspect(id)} requires prompt_file")}
+  end
+
+  defp check_node_kind_fields(id, %NodeDefinition{kind: kind, action: nil})
+       when kind in [:git, :gh] do
+    {:error, Error.new(:missing_action, "#{kind} node #{inspect(id)} requires action")}
+  end
+
+  defp check_node_kind_fields(_id, _node), do: :ok
+
+  defp validate_git_gh_actions(%Program{nodes: nodes}) do
+    nodes
+    |> Enum.reduce(:ok, fn {id, node}, acc ->
+      if acc != :ok, do: acc, else: check_git_gh_action(id, node)
+    end)
+  end
+
+  defp check_git_gh_action(id, %NodeDefinition{kind: :git, action: action}) do
+    if action in NodeDefinition.git_actions() do
+      :ok
+    else
+      {:error,
+       Error.new(
+         :invalid_git_action,
+         "git node #{inspect(id)} has unknown action #{inspect(action)}"
+       )}
+    end
+  end
+
+  defp check_git_gh_action(id, %NodeDefinition{kind: :gh, action: action}) do
+    if action in NodeDefinition.gh_actions() do
+      :ok
+    else
+      {:error,
+       Error.new(
+         :invalid_gh_action,
+         "gh node #{inspect(id)} has unknown action #{inspect(action)}"
+       )}
+    end
+  end
+
+  defp check_git_gh_action(_id, _node), do: :ok
 end

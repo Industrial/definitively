@@ -1,6 +1,6 @@
 # definitively
 
-FSM-based workflow runner for CLI commands, LLM sessions, and git steps. Programs are YAML state machines backed by OTP `:gen_statem`; nodes run shell commands or LLM agents and return typed outcomes.
+FSM-based workflow runner for CLI commands, LLM sessions, and native git/GitHub automation. Programs are YAML state machines backed by OTP `:gen_statem`; nodes run shell commands or LLM agents and return typed outcomes.
 
 **[Read the Book](https://industrial.github.io/definitively/)** — install, first program, YAML reference, patterns, and CLI.
 
@@ -28,6 +28,8 @@ Pin a release: `bash -s -- --version definitively-v0.2.0`. See the [Install chan
 | First run | [Quick start](https://industrial.github.io/definitively/quick-start.html) |
 | Workspace setup | [`.definitively/` layout](https://industrial.github.io/definitively/workspace/layout.html) |
 | Write programs | [Authoring programs](https://industrial.github.io/definitively/authoring/structure.html) |
+| Git and GitHub nodes | [Git nodes](https://industrial.github.io/definitively/authoring/git-nodes.html) · [gh nodes](https://industrial.github.io/definitively/authoring/gh-nodes.html) |
+| Git/PR/CI pattern | [Git and GitHub automation](https://industrial.github.io/definitively/patterns/git-gh-automation.html) |
 | Quality loop example | [Dev quality loop](https://industrial.github.io/definitively/patterns/dev-quality-loop.html) |
 | CLI reference | [Commands and flags](https://industrial.github.io/definitively/cli/reference.html) |
 | Contribute | [Developing definitively](https://industrial.github.io/definitively/appendices/developing.html) |

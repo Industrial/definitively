@@ -60,7 +60,9 @@ defmodule Definitively.Nodes.LlmTest do
     node = %NodeDefinition{kind: :llm, prompt_file: @prompt_file}
     root = @workspace_root
 
-    assert {:ok, body} = Llm.read_prompt(node, %RunContext{workspace_root: root, run_id: "t", env: %{}})
+    assert {:ok, body} =
+             Llm.read_prompt(node, %RunContext{workspace_root: root, run_id: "t", env: %{}})
+
     assert body =~ "Fix the issue"
   end
 

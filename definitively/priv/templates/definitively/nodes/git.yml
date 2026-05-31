@@ -1,0 +1,54 @@
+# Copy-paste git node fragments into your program's `nodes:` section.
+repo_status:
+  kind: git
+  action: status
+  outcome:
+    success:
+      - signal: clean
+    partial:
+      - signal: dirty
+stage_all:
+  kind: git
+  action: add
+  options:
+    all: true
+  outcome:
+    success:
+      - exit_code: 0
+    failure:
+      - exit_code: {neq: 0}
+ship_commit:
+  kind: git
+  action: commit
+  options:
+    message: "chore: ship changes"
+    add: all
+  outcome:
+    success:
+      - exit_code: 0
+    failure:
+      - exit_code: {neq: 0}
+push_origin:
+  kind: git
+  action: push
+  options:
+    remote: origin
+    set_upstream: true
+  outcome:
+    success:
+      - exit_code: 0
+    failure:
+      - exit_code: {neq: 0}
+release_tag:
+  kind: git
+  action: tag
+  options:
+    name: v0.0.0
+    annotate: true
+    message: "Release v0.0.0"
+    push: true
+  outcome:
+    success:
+      - exit_code: 0
+    failure:
+      - exit_code: {neq: 0}

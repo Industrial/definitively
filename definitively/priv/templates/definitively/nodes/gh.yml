@@ -1,0 +1,54 @@
+# Copy-paste GitHub CLI node fragments into your program's `nodes:` section.
+# Requires `gh auth login` or GH_TOKEN in the environment.
+open_pr:
+  kind: gh
+  action: pr_create
+  options:
+    title: "Automated PR"
+    body: "Opened by definitively"
+  outcome:
+    success:
+      - exit_code: 0
+    failure:
+      - exit_code: {neq: 0}
+view_pr:
+  kind: gh
+  action: pr_view
+  options:
+    branch: main
+  outcome:
+    success:
+      - signal: open
+    failure:
+      - signal: closed
+watch_ci:
+  kind: gh
+  action: run_watch
+  options:
+    workflow: ci.yml
+  timeout_ms: 900000
+  outcome:
+    success:
+      - exit_code: 0
+    failure:
+      - exit_code: {neq: 0}
+list_runs:
+  kind: gh
+  action: run_list
+  options:
+    workflow: ci.yml
+    limit: 5
+  outcome:
+    success:
+      - exit_code: 0
+view_run:
+  kind: gh
+  action: run_view
+  options:
+    run_id: 123456789
+    log_failed: true
+  outcome:
+    success:
+      - jq: '.conclusion == "success"'
+    failure:
+      - exit_code: {neq: 0}

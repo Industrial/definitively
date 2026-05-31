@@ -128,6 +128,7 @@ defmodule Definitively.Run.Coordinator do
 
   defp start_program(%Program{} = program, opts) do
     run_id = Keyword.get(opts, :run_id, unique_run_id())
+
     workspace =
       Keyword.get(opts, :workspace_root) ||
         System.get_env("DEFINITIVELY_WORKSPACE") ||

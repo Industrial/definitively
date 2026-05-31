@@ -29,16 +29,26 @@ defmodule Definitively.Log do
     |> String.trim()
     |> String.downcase()
     |> case do
-      "trace" -> :trace
-      "debug" -> :debug
-      "info" -> :info
-      "warn" -> :warn
-      "warning" -> :warn
-      "error" -> :error
+      "trace" ->
+        :trace
+
+      "debug" ->
+        :debug
+
+      "info" ->
+        :info
+
+      "warn" ->
+        :warn
+
+      "warning" ->
+        :warn
+
+      "error" ->
+        :error
+
       other ->
-        Logger.warning(
-          "invalid DEFINITIVELY_LOG_LEVEL=#{inspect(other)}, using info"
-        )
+        Logger.warning("invalid DEFINITIVELY_LOG_LEVEL=#{inspect(other)}, using info")
 
         :info
     end

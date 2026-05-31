@@ -46,6 +46,7 @@ defmodule Definitively.WorkspaceTest do
       assert {:error, :no_definitively_layout} = Workspace.resolve_run(path)
     end)
   end
+
   test "resolve_run uses DEFINITIVELY_WORKSPACE when layout is absent" do
     prev = System.get_env("DEFINITIVELY_WORKSPACE")
     root = Path.expand("../../..", __DIR__)
@@ -54,6 +55,7 @@ defmodule Definitively.WorkspaceTest do
 
     on_exit(fn ->
       File.rm(path)
+
       case prev do
         nil -> System.delete_env("DEFINITIVELY_WORKSPACE")
         value -> System.put_env("DEFINITIVELY_WORKSPACE", value)

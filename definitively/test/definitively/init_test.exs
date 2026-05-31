@@ -51,7 +51,9 @@ defmodule Definitively.InitTest do
     File.write!(program, "stale
 ")
 
-    assert {:ok, %{created: second, skipped: []}} = Init.run(workspace_root: workspace, force: true)
+    assert {:ok, %{created: second, skipped: []}} =
+             Init.run(workspace_root: workspace, force: true)
+
     assert length(second) == length(first)
     assert File.read!(program) =~ "id: example"
     refute File.read!(program) =~ "stale"
@@ -80,5 +82,4 @@ defmodule Definitively.InitTest do
     assert output =~ "created"
     assert File.read!(program) =~ "id: example"
   end
-
 end

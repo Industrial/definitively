@@ -1,6 +1,6 @@
 defmodule Definitively.Workspace do
-
   alias Definitively.Log
+
   @moduledoc """
   Resolves an absolute program path and workspace root from a workflow YAML file.
 

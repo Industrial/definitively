@@ -48,7 +48,10 @@ defmodule Definitively.Domain.PredicateTest do
     raw = %RawResult{llm_json: %{"status" => "ok"}}
 
     assert Predicate.matches?(%{jq: ~s(.status == "ok")}, raw)
-    refute Predicate.matches?(%{jq: ~s(.status == "ok")}, %RawResult{llm_json: %{"status" => "fail"}})
+
+    refute Predicate.matches?(%{jq: ~s(.status == "ok")}, %RawResult{
+             llm_json: %{"status" => "fail"}
+           })
   end
 
   test "jq and unknown clauses do not match bare raw" do

@@ -72,7 +72,8 @@ defmodule Definitively.Nodes.Llm do
         parse_json_output(output, duration_ms)
 
       {:ok, {output, code, duration_ms}} ->
-        {:ok, %RawResult{exit_code: code, stdout: output, duration_ms: duration_ms, timed_out: false}}
+        {:ok,
+         %RawResult{exit_code: code, stdout: output, duration_ms: duration_ms, timed_out: false}}
     end
   end
 

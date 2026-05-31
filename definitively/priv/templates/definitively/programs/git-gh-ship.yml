@@ -1,0 +1,96 @@
+program:
+  id: git_gh_ship
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: check
+  check:
+    type: active
+    node: repo_status
+    on:
+      success: push
+      partial: commit
+  commit:
+    type: active
+    node: ship_commit
+    on:
+      success: push
+      failure: failed
+  push:
+    type: active
+    node: push_origin
+    on:
+      success: pr
+      failure: failed
+  pr:
+    type: active
+    node: open_pr
+    on:
+      success: watch
+      failure: failed
+  watch:
+    type: active
+    node: watch_ci
+    on:
+      success: done
+      failure: failed
+  done:
+    type: final
+  failed:
+    type: final
+nodes:
+  repo_status:
+    kind: git
+    action: status
+    outcome:
+      success:
+        - signal: clean
+      partial:
+        - signal: dirty
+  ship_commit:
+    kind: git
+    action: commit
+    options:
+      message: "chore: ship via definitively"
+      add: all
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  push_origin:
+    kind: git
+    action: push
+    options:
+      remote: origin
+      set_upstream: true
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  open_pr:
+    kind: gh
+    action: pr_create
+    options:
+      title: "chore: ship via definitively"
+      body: "Automated PR opened by definitively git-gh-ship workflow"
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  watch_ci:
+    kind: gh
+    action: run_watch
+    options:
+      workflow: definitively-ci.yml
+    timeout_ms: 900000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}

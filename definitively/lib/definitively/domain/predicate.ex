@@ -5,10 +5,20 @@ defmodule Definitively.Domain.Predicate do
 
   defp jq_matches?(".status == \"ok\"", %{"status" => "ok"}), do: true
   defp jq_matches?(".status == \"ok\"", %{status: "ok"}), do: true
+  defp jq_matches?(".state == \"OPEN\"", %{"state" => "OPEN"}), do: true
+  defp jq_matches?(".state == \"OPEN\"", %{state: "OPEN"}), do: true
+  defp jq_matches?(".conclusion == \"success\"", %{"conclusion" => "success"}), do: true
+  defp jq_matches?(".conclusion == \"success\"", %{conclusion: "success"}), do: true
   defp jq_matches?(_expr, _json), do: false
 
   defp jq_matches_stdout?(_expr, ""), do: false
-  defp jq_matches_stdout?(_expr, _stdout), do: false
+
+  defp jq_matches_stdout?(expr, stdout) do
+    case Jason.decode(stdout) do
+      {:ok, json} when is_map(json) -> jq_matches?(expr, json)
+      _ -> false
+    end
+  end
 
   @doc "Returns true when every predicate clause in the map matches the raw result."
   @spec matches?(map(), RawResult.t()) :: boolean()
@@ -31,6 +41,9 @@ defmodule Definitively.Domain.Predicate do
   defp match_clause({:signal, name}, %RawResult{signals: signals}) when is_binary(name) do
     signal_truthy?(Map.get(signals, name) || Map.get(signals, String.to_atom(name)))
   end
+
+  defp match_clause({:jq, expr}, %RawResult{data: data}) when is_map(data),
+    do: jq_matches?(expr, data)
 
   defp match_clause({:jq, expr}, %RawResult{llm_json: json}) when is_map(json),
     do: jq_matches?(expr, json)
