@@ -2,6 +2,17 @@
 
 Dogfood configuration for [orchestrator](../definitively/).
 
+## Run logs
+
+Each `definitively run` writes a single log file under `.definitively/logs/` (e.g. `20260531-071129.615982-dev-quality-loop.log`).
+
+Requires the in-repo CLI (0.3+). In `devenv shell`, the local escript under `definitively/` is on PATH automatically. Otherwise:
+
+```bash
+cd definitively && mix escript.build && ./definitively run ../.definitively/programs/dev-quality-loop.yml
+```
+
+Disable with `DEFINITIVELY_RUN_LOG=0`.
 ## Dev quality loop
 
 Program: [programs/dev-quality-loop.yml](programs/dev-quality-loop.yml)
@@ -78,4 +89,5 @@ Uses structured `maestro` nodes (see `definitively/priv/templates/definitively/n
 See [.maestro/docs/DEFINITIVELY_INTEGRATION.md](../.maestro/docs/DEFINITIVELY_INTEGRATION.md).
 
 See the [Hook integration](https://industrial.github.io/definitively/patterns/hook-integration.html) book chapter.
+
 

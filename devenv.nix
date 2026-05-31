@@ -293,9 +293,22 @@ in {
 
     (cd "$DEVENV_ROOT/definitively" && mix deps.get --quiet) || true
 
-    if [ "''${DEFINITIVELY_FROM_SOURCE:-}" = "1" ]; then
-      definitively-escript
-      export PATH="$DEVENV_ROOT/definitively:$PATH"
+    # Prefer in-repo definitively escript (run logs, latest CLI) over nix store package.
+    definitively_dir="$DEVENV_ROOT/definitively"
+    definitively_bin="$definitively_dir/definitively"
+    if [ -d "$definitively_dir" ]; then
+      needs_build=0
+      if [ ! -x "$definitively_bin" ]; then
+        needs_build=1
+      elif find "$definitively_dir/lib" "$definitively_dir/mix.exs" -newer "$definitively_bin" -print -quit 2>/dev/null | grep -q .; then
+        needs_build=1
+      fi
+      if [ "$needs_build" = "1" ] || [ "''${DEFINITIVELY_FROM_SOURCE:-}" = "1" ]; then
+        definitively-escript
+      fi
+      if [ -x "$definitively_bin" ]; then
+        export PATH="$definitively_dir:$PATH"
+      fi
     fi
 
     # ElixirLS override dir (also used by scripts/elixir-ls-release/*.sh wrappers)
