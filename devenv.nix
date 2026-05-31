@@ -293,7 +293,7 @@ in {
 
     (cd "$DEVENV_ROOT/definitively" && mix deps.get --quiet) || true
 
-    # Prefer in-repo definitively escript (run logs, latest CLI) over nix store package.
+    # Prefer in-repo definitively escript (latest CLI) over nix store package.
     definitively_dir="$DEVENV_ROOT/definitively"
     definitively_bin="$definitively_dir/definitively"
     if [ -d "$definitively_dir" ]; then

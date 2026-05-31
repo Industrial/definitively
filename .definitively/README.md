@@ -2,17 +2,6 @@
 
 Dogfood configuration for [orchestrator](../definitively/).
 
-## Run logs
-
-Each `definitively run` writes a single log file under `.definitively/logs/` (e.g. `20260531-071129.615982-dev-quality-loop.log`).
-
-Requires the in-repo CLI (0.3+). In `devenv shell`, the local escript under `definitively/` is on PATH automatically. Otherwise:
-
-```bash
-cd definitively && mix escript.build && ./definitively run ../.definitively/programs/dev-quality-loop.yml
-```
-
-Disable with `DEFINITIVELY_RUN_LOG=0`.
 ## Dev quality loop
 
 Program: [programs/dev-quality-loop.yml](programs/dev-quality-loop.yml)
@@ -56,8 +45,8 @@ Inside `definitively/`, `mix definitively …` delegates to the same CLI (for co
 
 ### Logging
 
-Set `ORCHESTRATOR_LOG_LEVEL` to one of `TRACE`, `DEBUG`, `INFO` (default), `WARN`, or `ERROR`.
-Workflow events (state transitions, node execution, outcomes) are logged via OTP `Logger`. Subprocess stdout/stderr is mirrored byte-for-byte into the same run log file while a run is active.
+Set `DEFINITIVELY_LOG_LEVEL` to one of `TRACE`, `DEBUG`, `INFO` (default), `WARN`, or `ERROR`.
+Workflow events (state transitions, node execution, outcomes, and subprocess lifecycle) are logged via OTP `Logger` to the terminal.
 
 ## Git hook gate programs
 

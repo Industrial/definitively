@@ -3,7 +3,6 @@ defmodule Definitively.CLI do
 
   alias Definitively.Init
   alias Definitively.Log
-  alias Definitively.Log.RunFile
   alias Definitively.Run.Coordinator
   alias Definitively.Visualize
   alias Definitively.Workspace
@@ -17,7 +16,6 @@ defmodule Definitively.CLI do
     case dispatch(argv) do
       :ok ->
         print_success(argv)
-        RunFile.clear_run_log_path!()
         :ok
 
       :usage ->
@@ -65,16 +63,14 @@ defmodule Definitively.CLI do
   end
 
   defp run_resolved_program(resolved) do
+    Log.info("run requested",
+      program: resolved.program_path,
+      workspace: resolved.workspace_root
+    )
+
     opts = run_opts(resolved)
 
-    case RunFile.with_log(resolved.workspace_root, resolved.program_path, opts, fn opts ->
-           Log.info("run requested",
-             program: resolved.program_path,
-             workspace: resolved.workspace_root
-           )
-
-           Coordinator.run_until_final(resolved.program_path, opts)
-         end) do
+    case Coordinator.run_until_final(resolved.program_path, opts) do
       :ok ->
         :ok
 
@@ -156,17 +152,7 @@ defmodule Definitively.CLI do
     end
   end
 
-  defp print_success(["run" | _]) do
-    case RunFile.active_log_path() do
-      nil ->
-        IO.puts("workflow finished")
-
-      path ->
-        line = "workflow finished — log: #{path}\n"
-        RunFile.write_output(line)
-        IO.write(:stdio, line)
-    end
-  end
+  defp print_success(["run" | _]), do: IO.puts("workflow finished")
   defp print_success(["visualize" | _]), do: :ok
   defp print_success(["init" | _]), do: :ok
   defp print_success(_), do: :ok

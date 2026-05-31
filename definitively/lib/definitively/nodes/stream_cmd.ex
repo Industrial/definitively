@@ -1,10 +1,8 @@
 defmodule Definitively.Nodes.StreamCmd do
   alias Definitively.Log
-  alias Definitively.Log.RunFile
 
   @moduledoc """
-  Runs a subprocess with stdout/stderr streamed to the terminal, mirrored to the
-  active run log file when present, and captured for callers.
+  Runs a subprocess with stdout/stderr streamed to the terminal and captured for callers.
   """
 
   @doc "Runs `executable` with `args`, streaming output until exit or timeout."
@@ -57,19 +55,17 @@ defmodule Definitively.Nodes.StreamCmd do
     [{:env, [~c"LANGUAGE=en_US.UTF-8", ~c"LC_ALL=en_US.UTF-8" | charlist_env]}]
   end
 
-  defp emit_output(chunk) do
+  defp maybe_write_stdio(chunk) do
     if Application.get_env(:definitively, :stream_output, true) do
       IO.write(:stdio, chunk)
     end
-
-    RunFile.write_output(chunk)
-    Log.trace("subprocess output", bytes: byte_size(chunk))
   end
 
   defp collect(port, timeout_ms, acc, started) do
     receive do
       {^port, {:data, chunk}} ->
-        emit_output(chunk)
+        maybe_write_stdio(chunk)
+        Log.trace("subprocess output", bytes: byte_size(chunk))
         collect(port, timeout_ms, acc <> chunk, started)
 
       {^port, {:exit_status, status}} ->

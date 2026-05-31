@@ -6,7 +6,6 @@ defmodule Definitively.MCP do
   """
 
   alias Definitively.Log
-  alias Definitively.Log.RunFile
   alias Definitively.Run.Coordinator
   alias Definitively.Visualize
 
@@ -30,30 +29,14 @@ defmodule Definitively.MCP do
     Log.info("mcp workflow_run", program_path: path)
     opts = run_opts(params)
 
-    result =
-      RunFile.with_log_for_program(path, opts, fn opts ->
-        Coordinator.run_until_final(path, opts)
-      end)
-
-    case result do
+    case Coordinator.run_until_final(path, opts) do
       :ok ->
-        response = %{ok: true, result: "finished"}
-
-        response =
-          case Application.get_env(:definitively, :run_log_path) do
-            nil -> response
-            log_path -> Map.put(response, :log_path, log_path)
-          end
-
-        RunFile.clear_run_log_path!()
-        {:ok, response}
+        {:ok, %{ok: true, result: "finished"}}
 
       {:error, :awaiting_approval} ->
-        RunFile.clear_run_log_path!()
         {:ok, %{ok: false, awaiting_approval: true}}
 
       {:error, reason} ->
-        RunFile.clear_run_log_path!()
         {:error, error_map(:run_failed, reason)}
     end
   end

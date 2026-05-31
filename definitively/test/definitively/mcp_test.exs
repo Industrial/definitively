@@ -17,30 +17,6 @@ defmodule Definitively.MCPTest do
              MCP.handle_tool("workflow_run", %{"program_path" => @echo})
   end
 
-  test "workflow_run returns log_path" do
-    prev = System.get_env("DEFINITIVELY_RUN_LOG")
-    System.put_env("DEFINITIVELY_RUN_LOG", "1")
-
-    on_exit(fn ->
-      case prev do
-        nil -> System.put_env("DEFINITIVELY_RUN_LOG", "0")
-        v -> System.put_env("DEFINITIVELY_RUN_LOG", v)
-      end
-    end)
-
-    with_tmp_workspace_program(@echo, fn program, workspace ->
-      assert {:ok, %{ok: true, result: "finished", log_path: log_path}} =
-               MCP.handle_tool("workflow_run", %{
-                 "program_path" => program,
-                 "workspace_root" => workspace
-               })
-
-      assert String.starts_with?(log_path, Path.join([workspace, ".definitively", "logs"]))
-      assert log_path =~ "-echo_ok.log"
-      assert File.regular?(log_path)
-    end)
-  end
-
   test "workflow_run auto-approves approval programs" do
     assert {:ok, %{ok: true, result: "finished"}} =
              MCP.handle_tool("workflow_run", %{"program_path" => @approval})

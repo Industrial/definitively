@@ -19,7 +19,7 @@ states:
 nodes:
   echo:
     kind: cli
-    command: ["sh", "-c", "echo hello"]
+    command: ["sh", "-c", "exit 0"]
     outcome:
       success:
         - exit_code: 0
