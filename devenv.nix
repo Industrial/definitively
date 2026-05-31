@@ -77,10 +77,6 @@
 in {
   name = "project-template";
 
-  imports = [
-    inputs.repo.devenvModules.definitively
-  ];
-
   dotenv = {
     enable = true;
   };
@@ -117,7 +113,7 @@ in {
       targets = [];
     };
 
-    # uv venv at `.devenv/state/venv` — Serena MCP (`scripts/serena-mcp-wrapper.sh`); see pyproject.toml [dependency-groups].
+    # uv venv at `.devenv/state/venv` — Serena MCP (`.cursor/mcp.json` → `.devenv/state/venv/bin/serena`); see pyproject.toml [dependency-groups].
     python = {
       enable = true;
       uv = {
@@ -184,6 +180,8 @@ in {
     roam-code
     lean-ctx
 
+    graphviz
+
     moon
 
     actionlint
@@ -228,7 +226,7 @@ in {
         export MOON_CONCURRENCY=1
         export DEFINITIVELY_WORKSPACE="$DEVENV_ROOT"
         export DEFINITIVELY_CURSOR_AGENT="/run/current-system/sw/bin/cursor-agent"
-        definitively run "$DEVENV_ROOT/.definitively/programs/pre-commit-gate.yml"
+        "$DEVENV_ROOT/definitively/definitively" run "$DEVENV_ROOT/.definitively/programs/pre-commit-gate.yml"
       '';
     };
 
@@ -240,7 +238,7 @@ in {
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
         export DEFINITIVELY_WORKSPACE="$DEVENV_ROOT"
-        definitively run "$DEVENV_ROOT/.definitively/programs/pre-push-gate.yml"
+        "$DEVENV_ROOT/definitively/definitively" run "$DEVENV_ROOT/.definitively/programs/pre-push-gate.yml"
       '';
     };
 
@@ -293,7 +291,7 @@ in {
 
     (cd "$DEVENV_ROOT/definitively" && mix deps.get --quiet) || true
 
-    # Prefer in-repo definitively escript (latest CLI) over nix store package.
+    # Build in-repo escript when stale; use ./definitively/definitively (not a nix package on PATH).
     definitively_dir="$DEVENV_ROOT/definitively"
     definitively_bin="$definitively_dir/definitively"
     if [ -d "$definitively_dir" ]; then
@@ -304,10 +302,7 @@ in {
         needs_build=1
       fi
       if [ "$needs_build" = "1" ] || [ "''${DEFINITIVELY_FROM_SOURCE:-}" = "1" ]; then
-        definitively-escript
-      fi
-      if [ -x "$definitively_bin" ]; then
-        export PATH="$definitively_dir:$PATH"
+        definitively-escript || true
       fi
     fi
 

@@ -78,4 +78,28 @@ defmodule Definitively.Domain.MaestroActionTest do
     File.write!(RunState.path(tmp), "{}")
     assert RunState.get(tmp, "mission_id") == "pln-test-999"
   end
+  test "recover_existing_mission resolves id from missions.jsonl", %{tmp: tmp} do
+    missions_dir = Path.join([tmp, ".maestro", "missions"])
+    File.mkdir_p!(missions_dir)
+
+    line =
+      ~s({"id":"pln-resume-1","slug":"agent-profile-refactor-054927eb","state":"approved"})
+
+    File.write!(Path.join(missions_dir, "missions.jsonl"), line <> "\n")
+
+    stderr =
+      "maestro mission from-spec: Mission with slug agent-profile-refactor-054927eb already exists\n"
+
+    assert {:ok, "pln-resume-1", stdout} = MaestroAction.recover_existing_mission(stderr, tmp)
+    assert stdout =~ "pln-resume-1"
+  end
+
+  test "recover_existing_mission returns error for unknown slug", %{tmp: tmp} do
+    assert :error =
+             MaestroAction.recover_existing_mission(
+               "Mission with slug missing-slug already exists",
+               tmp
+             )
+  end
+
 end

@@ -181,7 +181,6 @@ nodes:
       - --print
       - --output-format
       - stream-json
-      - --stream-partial-output
       - --
     outcome: &llm_outcome
       success:

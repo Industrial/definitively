@@ -20,4 +20,18 @@ defmodule Definitively.Nodes.StreamCmdTest do
 
     assert ms >= 50
   end
+  test "completes early when complete callback returns true" do
+    script = ~s(echo line1; echo '{"status":"ok","signals":{"fix_complete":true}}'; sleep 60)
+
+    assert {:ok, {output, 0, ms}} =
+             StreamCmd.run("sh", ["-c", script],
+               cd: File.cwd!(),
+               timeout_ms: 5_000,
+               complete: fn acc -> String.contains?(acc, "fix_complete") end
+             )
+
+    assert ms < 2_000
+    assert output =~ "fix_complete"
+  end
+
 end

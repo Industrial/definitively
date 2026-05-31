@@ -67,7 +67,13 @@ defmodule Definitively.Nodes.Llm do
       timeout_ms: timeout_ms
     )
 
-    case StreamCmd.run(executable, args, cd: ctx.workspace_root, timeout_ms: timeout_ms) do
+    opts = [
+      cd: ctx.workspace_root,
+      timeout_ms: timeout_ms,
+      complete: &stream_complete?/1
+    ]
+
+    case StreamCmd.run(executable, args, opts) do
       {:ok, {:timed_out, output, duration_ms}} ->
         {:ok, %RawResult{timed_out: true, stdout: output, duration_ms: duration_ms}}
 
@@ -111,22 +117,53 @@ defmodule Definitively.Nodes.Llm do
   end
 
   defp extract_llm_json_from_lines(output) do
-    output
-    |> String.split("\n", trim: true)
-    |> Enum.reverse()
-    |> Enum.find_value(&decode_llm_line/1)
-    |> case do
-      {:ok, _} = ok -> ok
-      _ -> :error
+    line_result =
+      output
+      |> String.split("\n", trim: true)
+      |> Enum.reverse()
+      |> Enum.find_value(&decode_llm_line/1)
+
+    case line_result do
+      {:ok, _} = ok ->
+        ok
+
+      _ ->
+        if ok_envelope_in_stream?(output) do
+          {:ok, %{"status" => "ok", "signals" => %{"fix_complete" => true}}}
+        else
+          :error
+        end
     end
   end
 
   defp decode_llm_line(line) do
     case Jason.decode(line) do
-      {:ok, %{"status" => _} = map} -> {:ok, map}
-      {:ok, %{"type" => "result", "result" => %{} = result}} -> {:ok, result}
-      _ -> nil
+      {:ok, %{"status" => _} = map} ->
+        {:ok, map}
+
+      {:ok, %{"type" => "result", "result" => %{} = result}} ->
+        {:ok, result}
+
+      {:ok, %{"type" => "result", "subtype" => "success"} = envelope} ->
+        {:ok, envelope}
+
+      _ ->
+        nil
     end
+  end
+
+  @doc false
+  @spec stream_complete?(String.t()) :: boolean()
+  def stream_complete?(output) when is_binary(output) do
+    case extract_llm_json(output) do
+      {:ok, %{"status" => "ok"}} -> true
+      _ -> false
+    end
+  end
+
+  defp ok_envelope_in_stream?(output) do
+    String.contains?(output, ~S("status":"ok")) and
+      String.contains?(output, ~S("fix_complete":true))
   end
 
   defp enrich_raw(%RawResult{llm_json: %{} = json} = raw) do

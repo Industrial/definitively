@@ -35,6 +35,7 @@ defmodule Definitively.MixProject do
     [
       {:yaml_elixir, "~> 2.9"},
       {:jason, "~> 1.4"},
+      {:hermes_mcp, "~> 0.14"},
       {:graphvix, "~> 1.1"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:doctor, "~> 0.23", only: [:dev, :test], runtime: false},

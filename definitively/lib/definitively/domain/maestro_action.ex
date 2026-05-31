@@ -217,6 +217,53 @@ defmodule Definitively.Domain.MaestroAction do
     end
   end
 
+  @doc "When from-spec fails because the mission slug already exists, resolve its id from missions.jsonl."
+  @spec recover_existing_mission(String.t(), Path.t()) ::
+          {:ok, String.t(), String.t()} | :error
+  def recover_existing_mission(output, workspace) when is_binary(output) do
+    trimmed = String.trim(output)
+
+    with {:ok, slug} <- extract_existing_mission_slug(trimmed),
+         {:ok, mission_id} <- find_mission_id_by_slug(workspace, slug) do
+      {:ok, mission_id, "#{mission_id} approved (#{slug})"}
+    else
+      _ -> :error
+    end
+  end
+
+  @doc false
+  @spec find_mission_id_by_slug(Path.t(), String.t()) :: {:ok, String.t()} | :error
+  def find_mission_id_by_slug(workspace, slug) when is_binary(slug) do
+    path = Path.join([workspace, ".maestro", "missions", "missions.jsonl"])
+
+    with {:ok, body} <- File.read(path),
+         id when is_binary(id) <- mission_id_from_jsonl(body, slug) do
+      {:ok, id}
+    else
+      _ -> :error
+    end
+  end
+
+  defp mission_id_from_jsonl(body, slug) do
+    body
+    |> String.split("\n", trim: true)
+    |> Enum.find_value(&mission_id_from_line(&1, slug))
+  end
+
+  defp mission_id_from_line(line, slug) do
+    case Jason.decode(line) do
+      {:ok, %{"slug" => ^slug, "id" => id}} when is_binary(id) and id != "" -> id
+      _ -> nil
+    end
+  end
+
+  defp extract_existing_mission_slug(output) do
+    case Regex.run(~r/Mission with slug ([^\s]+) already exists/, output) do
+      [_, slug] -> {:ok, slug}
+      _ -> :error
+    end
+  end
+
   defp require_path(opts, workspace, key, label) do
     path =
       Map.get(opts, key) || Map.get(opts, String.to_atom(key)) || RunState.get(workspace, key)

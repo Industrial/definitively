@@ -3,6 +3,7 @@ defmodule Definitively.CLI do
 
   alias Definitively.Init
   alias Definitively.Log
+  alias Definitively.MCP.Serve
   alias Definitively.Run.Coordinator
   alias Definitively.Visualize
   alias Definitively.Workspace
@@ -10,6 +11,7 @@ defmodule Definitively.CLI do
   @doc "Entry point for the definitively command-line interface."
   @spec main([String.t()]) :: :ok | no_return()
   def main(argv \\ []) do
+    maybe_prepare_mcp_serve!(argv)
     {:ok, _} = Application.ensure_all_started(:definitively)
     Log.configure!()
 
@@ -40,6 +42,9 @@ defmodule Definitively.CLI do
 
       ["init" | rest] ->
         dispatch_init(rest)
+
+      ["mcp", "serve"] ->
+        dispatch_mcp_serve()
 
       _ ->
         :usage
@@ -81,6 +86,19 @@ defmodule Definitively.CLI do
         Log.error("workflow failed", error: inspect(reason))
         {:error, reason, 1}
     end
+  end
+
+  defp maybe_prepare_mcp_serve!(["mcp", "serve" | _]) do
+    System.put_env(
+      "DEFINITIVELY_LOG_LEVEL",
+      System.get_env("DEFINITIVELY_LOG_LEVEL", "WARN")
+    )
+  end
+
+  defp maybe_prepare_mcp_serve!(_), do: :ok
+
+  defp dispatch_mcp_serve do
+    Serve.run()
   end
 
   defp dispatch_init(rest) do
@@ -155,6 +173,7 @@ defmodule Definitively.CLI do
   defp print_success(["run" | _]), do: IO.puts("workflow finished")
   defp print_success(["visualize" | _]), do: :ok
   defp print_success(["init" | _]), do: :ok
+  defp print_success(["mcp" | _]), do: :ok
   defp print_success(_), do: :ok
 
   defp print_init_summary(created, skipped) do
@@ -174,11 +193,13 @@ defmodule Definitively.CLI do
       definitively init [--force]
       definitively run </full/path/to/program.yml>
       definitively visualize </full/path/to/program.yml> [--format dot|png|svg] [--out <basename>]
+      definitively mcp serve
 
     init copies priv templates into .definitively/ under the workspace (cwd or DEFINITIVELY_WORKSPACE).
     Workspace root is inferred from the program path (parent of .definitively/).
     Default visualize writes DOT and PNG to .definitively/visualizations/.
     Override workspace with DEFINITIVELY_WORKSPACE if needed.
+    mcp serve speaks MCP over stdio (for Cursor); keep stdout clean — logs use stderr.
     """)
   end
 end

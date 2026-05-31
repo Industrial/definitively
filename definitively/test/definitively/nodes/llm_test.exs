@@ -153,4 +153,39 @@ defmodule Definitively.Nodes.LlmTest do
       assert {:ok, %RawResult{llm_json: %{"status" => "ok"}}} = Llm.execute(node, ctx)
     end
   end
+  test "stream_complete? detects ok envelope inside stream-json assistant chunks" do
+    stream =
+      ~s({"type":"assistant","message":{"content":[{"type":"text","text":"{\"status\":\"ok\",\"signals\":{\"fix_complete\":true}}"}]}}\n)
+
+    assert Llm.stream_complete?(stream)
+  end
+
+  test "parses ok envelope embedded in stream-json assistant output" do
+    prev_runner = Application.get_env(:definitively, :llm_runner)
+
+    stream =
+      ~s({"type":"assistant","message":{"content":[{"type":"text","text":"{\"status\":\"ok\",\"signals\":{\"fix_complete\":true}}"}]}}\n)
+
+    Application.put_env(:definitively, :llm_runner, {__MODULE__, :stream_ok_runner, [stream]})
+    on_exit(fn -> Application.put_env(:definitively, :llm_runner, prev_runner) end)
+
+    node = %NodeDefinition{kind: :llm, prompt_file: @prompt_file}
+    ctx = %RunContext{run_id: "t", workspace_root: @workspace_root, env: %{}}
+
+    assert {:ok, %RawResult{llm_json: %{"status" => "ok"}, signals: %{"fix_complete" => true}}} =
+             Llm.execute(node, ctx)
+  end
+
+  def stream_ok_runner(_node, _ctx, _prompt, stream) do
+    {:ok,
+     %RawResult{
+       exit_code: 0,
+       stdout: stream,
+       duration_ms: 1,
+       timed_out: false,
+       llm_json: %{"status" => "ok", "signals" => %{"fix_complete" => true}},
+       signals: %{"fix_complete" => true}
+     }}
+  end
+
 end

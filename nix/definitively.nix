@@ -7,7 +7,7 @@
   inherit (beamPackages) elixir_1_18 erlang fetchMixDeps mixRelease;
 
   pname = "definitively";
-  version = "0.2.0";
+  version = "0.3.1";
   src = ../definitively;
   elixir = elixir_1_18;
 in
@@ -31,7 +31,7 @@ in
         elixir
         ;
       mixEnv = "prod";
-      hash = "sha256-AoBGheC1jic0+izmmyIsLb/iuJWXenWUQXK7YHT3Qik=";
+      hash = "sha256-0wurQcpe5iCd5GMdFoolTGOT0h9NpolXWr+vkj1CLSU=";
     };
 
     meta = {

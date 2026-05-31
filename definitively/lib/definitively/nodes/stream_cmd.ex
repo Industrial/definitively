@@ -13,6 +13,7 @@ defmodule Definitively.Nodes.StreamCmd do
     cwd = Keyword.fetch!(opts, :cd)
     timeout_ms = Keyword.get(opts, :timeout_ms, 120_000)
     env = Keyword.get(opts, :env)
+    complete = Keyword.get(opts, :complete, fn _acc -> false end)
     started = System.monotonic_time(:millisecond)
 
     exe = resolve_executable(executable)
@@ -40,7 +41,7 @@ defmodule Definitively.Nodes.StreamCmd do
         port_opts
       )
 
-    collect(port, timeout_ms, "", started)
+    collect(port, timeout_ms, "", started, complete)
   end
 
   @doc false
@@ -61,12 +62,27 @@ defmodule Definitively.Nodes.StreamCmd do
     end
   end
 
-  defp collect(port, timeout_ms, acc, started) do
+  defp collect(port, timeout_ms, acc, started, complete) do
     receive do
       {^port, {:data, chunk}} ->
         maybe_write_stdio(chunk)
         Log.trace("subprocess output", bytes: byte_size(chunk))
-        collect(port, timeout_ms, acc <> chunk, started)
+        acc = acc <> chunk
+
+        if complete.(acc) do
+          close_port(port)
+          ended = System.monotonic_time(:millisecond)
+          duration = ended - started
+
+          Log.debug("subprocess completed early",
+            duration_ms: duration,
+            stdout_bytes: byte_size(acc)
+          )
+
+          {:ok, {acc, 0, duration}}
+        else
+          collect(port, timeout_ms, acc, started, complete)
+        end
 
       {^port, {:exit_status, status}} ->
         ended = System.monotonic_time(:millisecond)

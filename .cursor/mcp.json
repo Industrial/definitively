@@ -9,7 +9,7 @@
 			"command": "bunx",
 			"args": ["@vkhanhqui/figma-mcp-go"],
 			"disabled": false,
-			"description": "Figma via plugin bridge (https://github.com/vkhanhqui/figma-mcp-go) — run the companion plugin in Figma Desktop"
+			"description": "Figma via plugin bridge (https://github.com/vkhanhqui/figma-mcp-go) \u2014 run the companion plugin in Figma Desktop"
 		},
 		"mcp-debugger": {
 			"command": "bunx",
@@ -64,24 +64,24 @@
 			"description": "Maestro MCP via stdio (`maestro mcp serve`; see https://github.com/ReinaMacCredy/maestro#mcp-server)"
 		},
 		"lean-ctx": {
-			"command": "./scripts/lean-ctx-mcp-wrapper.sh",
+			"command": "./.devenv/profile/bin/lean-ctx",
 			"args": [],
 			"disabled": false,
-			"description": "lean-ctx MCP (context compression; https://github.com/yvgude/lean-ctx)"
+			"description": "lean-ctx MCP (context compression); run devenv shell once so .devenv/profile exists"
 		},
 		"serena": {
 			"type": "stdio",
-			"command": "./scripts/serena-mcp-wrapper.sh",
-			"args": [],
+			"command": "./.devenv/state/venv/bin/serena",
+			"args": ["start-mcp-server"],
 			"disabled": false,
-			"description": "Serena MCP (@oraios/serena); stdio via uv + devenv"
+			"description": "Serena MCP (@oraios/serena); run devenv shell once so .devenv/state/venv exists"
 		},
 		"roam-code": {
 			"type": "stdio",
-			"command": "./scripts/roam-mcp-wrapper.sh",
-			"args": [],
+			"command": "./.devenv/profile/bin/roam",
+			"args": ["mcp"],
 			"disabled": false,
-			"description": "roam-code MCP via devenv (`roam mcp` + fastmcp)"
+			"description": "roam-code MCP (fastmcp); run devenv shell once so .devenv/profile exists"
 		},
 		"searxng": {
 			"command": "bunx",
@@ -91,6 +91,16 @@
 			},
 			"disabled": false,
 			"description": "Web search via local SearXNG at http://localhost:4001 (mcp-searxng)"
+		},
+		"definitively": {
+			"command": "./definitively/definitively",
+			"args": ["mcp", "serve"],
+			"disabled": false,
+			"env": {
+				"DEFINITIVELY_WORKSPACE": "${workspaceFolder}",
+				"DEFINITIVELY_LOG_LEVEL": "WARN"
+			},
+			"description": "Definitively workflow MCP (stdio via in-repo escript)"
 		}
 	}
 }

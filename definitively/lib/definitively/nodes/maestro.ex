@@ -99,21 +99,38 @@ defmodule Definitively.Nodes.Maestro do
             {:ok, raw}
 
           {:ok, %RawResult{} = raw} ->
-            {signals, data} =
-              MaestroAction.parse_result(node.action, raw.exit_code || 1, raw.stdout, cwd)
+            {stdout, exit_code} = maybe_recover_mission_from_spec(node, raw, cwd)
 
-            exit_code = effective_exit_code(raw.exit_code, signals)
+            {signals, data} =
+              MaestroAction.parse_result(node.action, exit_code, stdout, cwd)
+
+            exit_code = effective_exit_code(exit_code, signals)
 
             {:ok,
              %{
                raw
-               | exit_code: exit_code,
+               | stdout: stdout,
+                 exit_code: exit_code,
                  signals: Map.merge(raw.signals, signals),
                  data: data
              }}
         end
     end
   end
+
+  defp maybe_recover_mission_from_spec(%NodeDefinition{action: :mission_from_spec}, raw, cwd) do
+    case MaestroAction.recover_existing_mission(raw.stdout || "", cwd) do
+      {:ok, _mission_id, synthetic_stdout} when raw.exit_code != 0 ->
+        Log.info("reusing existing maestro mission", prior_exit_code: raw.exit_code)
+
+        {synthetic_stdout, 0}
+
+      _ ->
+        {raw.stdout || "", raw.exit_code || 1}
+    end
+  end
+
+  defp maybe_recover_mission_from_spec(_node, raw, _cwd), do: {raw.stdout || "", raw.exit_code || 1}
 
   defp effective_exit_code(exit_code, signals) do
     parse_failed? =
