@@ -1,0 +1,61 @@
+name: Definitively CI
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - definitively/**
+      - .github/workflows/definitively-ci.yml
+      - .github/workflows/release-definitively.yml
+  pull_request:
+    paths:
+      - definitively/**
+      - .github/workflows/definitively-ci.yml
+      - .github/workflows/release-definitively.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          elixir-version: "1.18"
+      - name: Run tests with coverage
+        working-directory: definitively
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+          mix test --cover
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: definitively/cover/lcov.info
+          fail_ci_if_error: true
+          verbose: true
+  hex-dry-run:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: definitively
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          elixir-version: "1.18"
+      - run: mix local.rebar --force && mix local.hex --force
+      - run: mix deps.get
+      - name: Validate Hex package tarball
+        run: mix hex.build
+      - name: mix hex.publish --dry-run
+        run: |
+          if [[ -z "${HEX_API_KEY}" ]]; then
+            echo "HEX_API_KEY not configured; skipping Hex dry-run"
+            exit 0
+          fi
+          ../scripts/release/validate-hex-key.sh
+          mix hex.publish --dry-run --yes
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}

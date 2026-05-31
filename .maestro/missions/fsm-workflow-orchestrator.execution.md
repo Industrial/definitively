@@ -1,8 +1,8 @@
-# FSM Workflow Orchestrator — Maestro execution overlay
+# FSM Workflow Definitively — Maestro execution overlay
 
 Mission: `pln-mpsu3xxd-h0s6jn`  
-Spec: `.maestro/specs/fsm-workflow-orchestrator.md`  
-Verbatim DDD plan (1:1): `.maestro/missions/fsm-workflow-orchestrator.md`
+Spec: `.maestro/specs/fsm-workflow-definitively.md`  
+Verbatim DDD plan (1:1): `.maestro/missions/fsm-workflow-definitively.md`
 
 This file is **not** part of the product plan. It defines parallel execution, worktrees, and subagent dispatch.
 
@@ -26,7 +26,7 @@ Each `maestro task claim <tsk-id> --agent <id>` auto-creates a git worktree (ADR
 2. Dispatch **two** Cursor subagents (`best-of-n-runner` or `generalPurpose`) in parallel:
    - Agent A: `maestro task claim tsk-mpsu3z87-117b1h --agent cursor-a`
    - Agent B: `maestro task claim tsk-mpsu3z87-t6295y --agent cursor-b`
-3. Each agent works only in its worktree; no shared edits to `orchestrator/lib/orchestrator/domain/*` vs `outcome/*` vs `workflow/engine.ex` without coordination.
+3. Each agent works only in its worktree; no shared edits to `definitively/lib/definitively/domain/*` vs `outcome/*` vs `workflow/engine.ex` without coordination.
 4. If merge conflicts appear at PR time, **engine-dynamic** rebases after **outcome-eval** (evaluator modules are leafier; engine imports domain + outcome).
 
 ## Further split (optional)
@@ -44,10 +44,10 @@ Use `--parallel` so children are not sequentially `blocked_by` each other.
 
 | Wave | Falsify with |
 |------|----------------|
-| 0 | `moon run orchestrator:test` — pure tests for loader, validator, transition table |
+| 0 | `moon run definitively:test` — pure tests for loader, validator, transition table |
 | 1a | Unit tests for `OutcomeRules.classify/2` and predicates |
 | 1b | Engine tests with stubbed `RawResult`; fixture YAML drives states |
-| 2 | Integration: fake CLI node; `mix run -e` or CLI `orchestrator run` |
+| 2 | Integration: fake CLI node; `mix run -e` or CLI `definitively run` |
 | 3 | MCP tool smoke + approval path |
 
 Always: `maestro task verify <tsk-id>` before `ship`.

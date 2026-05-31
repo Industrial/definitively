@@ -6,7 +6,7 @@
 	"status": "locked",
 	"createdAt": "2026-05-30T21:27:17.262Z",
 	"lockedAt": "2026-05-30T21:27:17.262Z",
-	"intent": "Phase 3 — CLI executor, Run registry/coordinator, orchestrator CLI",
+	"intent": "Phase 3 — CLI executor, Run registry/coordinator, definitively CLI",
 	"scope": {
 		"filesExpected": ["**/*"],
 		"filesForbidden": []
@@ -29,12 +29,12 @@
 		},
 		{
 			"id": "dw-4aa1d3",
-			"text": "Orchestrator.Run exposes start/status/approve/cancel with ephemeral run registry (one Engine pid per run).",
+			"text": "Definitively.Run exposes start/status/approve/cancel with ephemeral run registry (one Engine pid per run).",
 			"kind": "manual"
 		},
 		{
 			"id": "dw-6dd944",
-			"text": "CLI supports orchestrator run/status/approve/cancel against a fixture YAML program.",
+			"text": "CLI supports definitively run/status/approve/cancel against a fixture YAML program.",
 			"kind": "manual"
 		},
 		{
@@ -44,7 +44,7 @@
 		},
 		{
 			"id": "dw-199a1a",
-			"text": "moon run orchestrator:format orchestrator:compile orchestrator:lint orchestrator:test pass; repo pre-commit and pre-push hooks pass.",
+			"text": "moon run definitively:format definitively:compile definitively:lint definitively:test pass; repo pre-commit and pre-push hooks pass.",
 			"kind": "manual"
 		}
 	],

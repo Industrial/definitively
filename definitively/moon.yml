@@ -1,0 +1,87 @@
+# Definitively Mix app — format, compile, credo, doctor, test, docs (moon project root: this directory).
+# https://moonrepo.dev/docs/config/project
+id: definitively
+language: elixir
+layer: application
+tasks:
+  lint:
+    description: 'credo --strict'
+    deps: ['project-template:format']
+    command: mix
+    args: [credo, --strict]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - '.credo.exs'
+      - 'mix.exs'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
+  doctor:
+    description: 'mix doctor --raise --summary (doc + @spec coverage)'
+    deps: ['~:lint']
+    command: mix
+    args: [doctor, --raise, --summary]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - '.doctor.exs'
+      - 'mix.exs'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
+  test:
+    description: 'mix test (includes doctests)'
+    deps: ['~:doctor']
+    command: bash
+    args: ['-c', 'MIX_ENV=test mix test']
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - 'test/**/*'
+      - 'mix.exs'
+      - 'mix.lock'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
+  coverage:
+    description: 'mix test --cover (fails below test_coverage threshold in mix.exs)'
+    deps: ['~:test']
+    command: bash
+    args: ['-c', 'MIX_ENV=test mix test --cover']
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - 'test/**/*'
+      - 'mix.exs'
+      - 'mix.lock'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
+  docs:
+    description: 'mix docs --warnings-as-errors'
+    deps: ['~:test']
+    command: mix
+    args: [docs, --warnings-as-errors]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - 'README.md'
+      - 'mix.exs'
+      - 'mix.lock'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure
+  build:
+    description: 'mix compile --warnings-as-errors'
+    deps: ['~:coverage', '~:docs']
+    command: mix
+    args: [compile, --warnings-as-errors]
+    inputs:
+      - '**/*.ex'
+      - '**/*.exs'
+      - 'mix.exs'
+      - 'mix.lock'
+    options:
+      cache: true
+      outputStyle: buffer-only-failure

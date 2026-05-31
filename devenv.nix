@@ -78,7 +78,7 @@ in {
   name = "project-template";
 
   imports = [
-    inputs.repo.devenvModules.orchestrator
+    inputs.repo.devenvModules.definitively
   ];
 
   dotenv = {
@@ -133,7 +133,7 @@ in {
       };
     };
 
-    # FSM orchestrator CLI — `orchestrator/` Mix project (gen_statem, CLI + MCP later).
+    # FSM definitively CLI — `definitively/` Mix project (gen_statem, CLI + MCP later).
     erlang = {
       enable = true;
       package = beamPackages.erlang;
@@ -229,7 +229,7 @@ in {
       '';
     };
 
-    # Pre-push: full orchestrator pipeline (tests, coverage, ExDoc, compile)
+    # Pre-push: full definitively pipeline (tests, coverage, ExDoc, compile)
     pre-push = {
       exec = ''
         mkdir -p "$DEVENV_ROOT/tmp"
@@ -242,7 +242,7 @@ in {
 
     mix-setup = {
       exec = ''
-        cd orchestrator
+        cd definitively
         mix local.hex --force
         mix local.rebar --force
         mix deps.get
@@ -251,13 +251,13 @@ in {
 
     mix-test = {
       exec = ''
-        cd orchestrator && mix test
+        cd definitively && mix test
       '';
     };
 
-    orchestrator-escript = {
+    definitively-escript = {
       exec = ''
-        cd "$DEVENV_ROOT/orchestrator"
+        cd "$DEVENV_ROOT/definitively"
         mix escript.build --force
       '';
     };
@@ -274,7 +274,7 @@ in {
     chmod 755 "$HOME/.cache/sccache" 2>/dev/null || true
 
     export MIX_ENV=dev
-    export ORCHESTRATOR_WORKSPACE="$DEVENV_ROOT"
+    export DEFINITIVELY_WORKSPACE="$DEVENV_ROOT"
 
     # Hex ETS cache can corrupt (:badfile); remove before deps.get so direnv stays clean.
     hex_cache="$HOME/.hex/cache.ets"
@@ -287,11 +287,11 @@ in {
       unset HEX_CACHE
     fi
 
-    (cd "$DEVENV_ROOT/orchestrator" && mix deps.get --quiet) || true
+    (cd "$DEVENV_ROOT/definitively" && mix deps.get --quiet) || true
 
-    if [ "''${ORCHESTRATOR_FROM_SOURCE:-}" = "1" ]; then
-      orchestrator-escript
-      export PATH="$DEVENV_ROOT/orchestrator:$PATH"
+    if [ "''${DEFINITIVELY_FROM_SOURCE:-}" = "1" ]; then
+      definitively-escript
+      export PATH="$DEVENV_ROOT/definitively:$PATH"
     fi
 
     # ElixirLS override dir (also used by scripts/elixir-ls-release/*.sh wrappers)

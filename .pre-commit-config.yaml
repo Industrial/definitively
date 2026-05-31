@@ -3,13 +3,13 @@ repos:
   - repo: local
     hooks:
       - id: pre-commit
-        name: pre-commit (moon format + orchestrator doctor)
+        name: pre-commit (moon format + definitively doctor)
         entry: devenv shell -- pre-commit
         language: system
         pass_filenames: false
         always_run: true
       - id: pre-push
-        name: pre-push (moon format + orchestrator full build chain)
+        name: pre-push (moon format + definitively full build chain)
         entry: devenv shell -- pre-push
         language: system
         pass_filenames: false

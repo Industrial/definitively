@@ -23,16 +23,16 @@
           inherit system;
         };
         beamPackages = pkgs-unstable.beam.packages.erlang_27;
-        orchestrator = pkgs.callPackage ./nix/orchestrator.nix {
+        definitively = pkgs.callPackage ./nix/definitively.nix {
           inherit beamPackages;
           inherit (beamPackages) fetchMixDeps mixRelease;
         };
       in {
-        inherit orchestrator;
-        default = orchestrator;
+        inherit definitively;
+        default = definitively;
       }
     );
 
-    devenvModules.orchestrator = import ./nix/devenv-module.nix;
+    devenvModules.definitively = import ./nix/devenv-module.nix;
   };
 }

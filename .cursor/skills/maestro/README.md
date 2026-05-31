@@ -4,4 +4,4 @@
 |-------|------|
 | [maestro](SKILL.md) | `.maestro/` present; missions, tasks, worktrees, parallel waves |
 
-Pairs with Elixir skills under [../elixir/README.md](../elixir/README.md) for `orchestrator/` implementation.
+Pairs with Elixir skills under [../elixir/README.md](../elixir/README.md) for `definitively/` implementation.

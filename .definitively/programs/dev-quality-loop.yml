@@ -1,0 +1,254 @@
+program:
+  id: dev_quality_loop
+  version: 4
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: lint
+  lint:
+    type: active
+    node: moon_lint
+    on:
+      success: doctor
+      failure: fix_lint
+      partial: fix_lint
+  fix_lint:
+    type: active
+    node: llm_fix_lint
+    on:
+      success: lint
+      failure: fix_lint
+      retry: fix_lint
+  doctor:
+    type: active
+    node: moon_doctor
+    on:
+      success: test
+      failure: fix_doctor
+      partial: fix_doctor
+  fix_doctor:
+    type: active
+    node: llm_fix_doctor
+    on:
+      success: doctor
+      failure: fix_doctor
+      retry: fix_doctor
+  test:
+    type: active
+    node: moon_test
+    on:
+      success: coverage
+      failure: fix_test
+      partial: fix_test
+  fix_test:
+    type: active
+    node: llm_fix_test
+    on:
+      success: test
+      failure: fix_test
+      retry: fix_test
+  coverage:
+    type: active
+    node: moon_coverage
+    on:
+      success: docs
+      failure: fix_coverage
+      partial: fix_coverage
+  fix_coverage:
+    type: active
+    node: llm_fix_coverage
+    on:
+      success: coverage
+      failure: fix_coverage
+      retry: fix_coverage
+  docs:
+    type: active
+    node: moon_docs
+    on:
+      success: build
+      failure: fix_docs
+      partial: fix_docs
+  fix_docs:
+    type: active
+    node: llm_fix_docs
+    on:
+      success: docs
+      failure: fix_docs
+      retry: fix_docs
+  build:
+    type: active
+    node: moon_build
+    on:
+      success: commit
+      failure: fix_build
+      partial: fix_build
+  fix_build:
+    type: active
+    node: llm_fix_build
+    on:
+      success: build
+      failure: fix_build
+      retry: fix_build
+  commit:
+    type: active
+    node: llm_ship
+    on:
+      success: done
+      failure: fix_commit
+      partial: fix_commit
+  fix_commit:
+    type: active
+    node: llm_fix_commit
+    on:
+      success: commit
+      failure: fix_commit
+      retry: fix_commit
+  done:
+    type: final
+  failed:
+    type: final
+nodes:
+  moon_lint:
+    kind: cli
+    command: ["moon", "run", "definitively:lint"]
+    timeout_ms: 300000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+      partial:
+        - exit_code: 0
+  moon_doctor:
+    kind: cli
+    command: ["moon", "run", "definitively:doctor"]
+    timeout_ms: 120000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+      partial:
+        - exit_code: 0
+  moon_test:
+    kind: cli
+    command: ["moon", "run", "definitively:test"]
+    timeout_ms: 300000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+      partial:
+        - exit_code: 0
+  moon_coverage:
+    kind: cli
+    command: ["moon", "run", "definitively:coverage"]
+    timeout_ms: 300000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+      partial:
+        - exit_code: 0
+  moon_docs:
+    kind: cli
+    command: ["moon", "run", "definitively:docs"]
+    timeout_ms: 300000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+      partial:
+        - exit_code: 0
+  moon_build:
+    kind: cli
+    command: ["moon", "run", "definitively:build"]
+    timeout_ms: 600000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+      partial:
+        - exit_code: 0
+  llm_fix_lint:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/fix-lint.md
+    timeout_ms: 3600000
+    command: &cursor_agent
+      - cursor-agent
+      - agent
+      - --force
+      - --approve-mcps
+      - --model
+      - auto
+      - --workspace
+      - "."
+      - --trust
+      - --print
+      - --output-format
+      - stream-json
+      - --stream-partial-output
+      - --
+    outcome: &llm_outcome
+      success:
+        - jq: '.status == "ok"'
+        - signal: fix_complete
+      failure:
+        - timeout: true
+        - signal: refused
+  llm_fix_doctor:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/fix-doctor.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_fix_test:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/fix-test.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_fix_coverage:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/fix-coverage.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_fix_docs:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/fix-docs.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_fix_build:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/fix-build.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_ship:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/ship-commit.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_fix_commit:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/fix-ship-commit.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome

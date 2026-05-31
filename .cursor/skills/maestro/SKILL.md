@@ -60,26 +60,26 @@ Optional intra-task split while parent is claimed:
 maestro task split <parent-tsk> --parallel "slice A" "slice B"
 ```
 
-## Active mission: FSM workflow orchestrator
+## Active mission: FSM workflow definitively
 
 | Field | Value |
 |-------|-------|
 | Mission | `pln-mpsu3xxd-h0s6jn` |
-| Spec | `.maestro/specs/fsm-workflow-orchestrator.md` |
-| Plan (verbatim) | `.maestro/missions/fsm-workflow-orchestrator.md` |
-| Parallelism | `.maestro/missions/fsm-workflow-orchestrator.execution.md` |
+| Spec | `.maestro/specs/fsm-workflow-definitively.md` |
+| Plan (verbatim) | `.maestro/missions/fsm-workflow-definitively.md` |
+| Parallelism | `.maestro/missions/fsm-workflow-definitively.execution.md` |
 
 First claim: `tsk-mpsu3z87-xy3w58` (`domain-spec`).
 
 ## Elixir implementation coupling
 
-Orchestrator code lives in `orchestrator/`. For domain/OTP work, also load:
+Definitively code lives in `definitively/`. For domain/OTP work, also load:
 
 - `.cursor/skills/elixir/elixir-core`
 - `.cursor/skills/elixir/elixir-otp-design`
 - `.cursor/skills/elixir/elixir-testing` (when editing `test/`)
 
-Verify: `moon run orchestrator:format orchestrator:compile orchestrator:lint orchestrator:test` then `maestro task verify <tsk-id>`.
+Verify: `moon run definitively:format definitively:compile definitively:lint definitively:test` then `maestro task verify <tsk-id>`.
 
 ## Do not
 

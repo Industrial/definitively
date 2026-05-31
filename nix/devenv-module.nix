@@ -4,7 +4,7 @@
   ...
 }: {
   packages = [
-    inputs.repo.packages.${pkgs.system}.orchestrator
+    inputs.repo.packages.${pkgs.system}.definitively
     pkgs.graphviz
   ];
 }

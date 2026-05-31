@@ -29,12 +29,12 @@
 		},
 		{
 			"id": "dw-c06b7b",
-			"text": "Orchestrator.Run exposes start/status/approve/cancel with ephemeral run registry (one Engine pid per run).",
+			"text": "Definitively.Run exposes start/status/approve/cancel with ephemeral run registry (one Engine pid per run).",
 			"kind": "manual"
 		},
 		{
 			"id": "dw-6607d5",
-			"text": "CLI supports orchestrator run/status/approve/cancel against a fixture YAML program.",
+			"text": "CLI supports definitively run/status/approve/cancel against a fixture YAML program.",
 			"kind": "manual"
 		},
 		{
@@ -44,7 +44,7 @@
 		},
 		{
 			"id": "dw-3f631a",
-			"text": "moon run orchestrator:format orchestrator:compile orchestrator:lint orchestrator:test pass; repo pre-commit and pre-push hooks pass.",
+			"text": "moon run definitively:format definitively:compile definitively:lint definitively:test pass; repo pre-commit and pre-push hooks pass.",
 			"kind": "manual"
 		}
 	],

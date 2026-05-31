@@ -1,5 +1,5 @@
 {
-	"elixirLS.projectDir": "orchestrator",
+	"elixirLS.projectDir": "definitively",
 	"elixirLS.mixEnv": "dev",
 	"elixirLS.languageServerOverridePath": "${workspaceFolder}/scripts/elixir-ls-release"
 }

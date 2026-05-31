@@ -21,7 +21,7 @@ commit-msg: subject must follow conventional commits.
 
 Examples:
   feat: add workflow engine
-  fix(orchestrator): handle missing final state
+  fix(definitively): handle missing final state
   docs: document moon quality gates
 
 Got:

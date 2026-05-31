@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
-# Install orchestrator from GitHub releases.
+# Install definitively from GitHub releases.
 # Usage: curl -fsSL https://raw.githubusercontent.com/Industrial/definitively/main/install.sh | bash
 set -euo pipefail
 
-REPO="${ORCHESTRATOR_INSTALL_REPO:-Industrial/definitively}"
+REPO="${DEFINITIVELY_INSTALL_REPO:-Industrial/definitively}"
 PREFIX="${PREFIX:-${HOME}/.local}"
 BINDIR="${BINDIR:-${PREFIX}/bin}"
-VERIFY="${ORCHESTRATOR_VERIFY:-1}"
-TAG="${ORCHESTRATOR_VERSION:-}"
+VERIFY="${DEFINITIVELY_VERIFY:-1}"
+TAG="${DEFINITIVELY_VERSION:-}"
 RAW_URL="https://raw.githubusercontent.com/${REPO}/main/install.sh"
 
 usage() {
     cat <<EOF
-Install orchestrator from GitHub releases.
+Install definitively from GitHub releases.
 
 Quick install:
   curl -fsSL ${RAW_URL} | bash
 
 Pin a release:
-  curl -fsSL ${RAW_URL} | bash -s -- --version orchestrator-v0.1.0
+  curl -fsSL ${RAW_URL} | bash -s -- --version definitively-v0.1.0
 
 Environment variables:
-  ORCHESTRATOR_INSTALL_REPO   GitHub owner/repo (default: Industrial/definitively)
-  ORCHESTRATOR_VERSION        Release tag (default: latest orchestrator-v* release)
+  DEFINITIVELY_INSTALL_REPO   GitHub owner/repo (default: Industrial/definitively)
+  DEFINITIVELY_VERSION        Release tag (default: latest definitively-v* release)
   PREFIX                      Install prefix (default: \$HOME/.local)
   BINDIR                      Binary directory (default: \$PREFIX/bin)
-  ORCHESTRATOR_VERIFY         Verify SHA256 checksum when 1 (default: 1)
+  DEFINITIVELY_VERIFY         Verify SHA256 checksum when 1 (default: 1)
 
 Supported release platforms: linux-x86_64, darwin-arm64
 EOF
@@ -79,10 +79,10 @@ resolve_tag() {
     local json tag
     json="$(curl -fsSL -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/${REPO}/releases?per_page=30")"
-    tag="$(printf '%s\n' "$json" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\(orchestrator-v[^"]*\)".*/\1/p' | head -n 1)"
+    tag="$(printf '%s\n' "$json" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\(definitively-v[^"]*\)".*/\1/p' | head -n 1)"
 
     if [[ -z "${tag}" ]]; then
-        die "no orchestrator-v* release found at https://github.com/${REPO}/releases"
+        die "no definitively-v* release found at https://github.com/${REPO}/releases"
     fi
     echo "${tag}"
 }
@@ -94,7 +94,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         --version)
-            [[ $# -ge 2 ]] || die "--version requires a tag (e.g. orchestrator-v0.1.0)"
+            [[ $# -ge 2 ]] || die "--version requires a tag (e.g. definitively-v0.1.0)"
             TAG="$2"
             shift 2
             ;;
@@ -110,15 +110,15 @@ fi
 
 PLATFORM="$(detect_platform)"
 TAG="$(resolve_tag)"
-VERSION="${TAG#orchestrator-v}"
+VERSION="${TAG#definitively-v}"
 BASE="https://github.com/${REPO}/releases/download/${TAG}"
-ARCHIVE="orchestrator-${VERSION}-${PLATFORM}.tar.gz"
+ARCHIVE="definitively-${VERSION}-${PLATFORM}.tar.gz"
 URL="${BASE}/${ARCHIVE}"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-echo "=> Installing orchestrator ${TAG} (${PLATFORM})"
+echo "=> Installing definitively ${TAG} (${PLATFORM})"
 download "$URL" "${tmpdir}/${ARCHIVE}"
 
 if [[ "${VERIFY}" == "1" ]]; then
@@ -139,12 +139,12 @@ if [[ "${VERIFY}" == "1" ]]; then
 fi
 
 tar -xzf "${tmpdir}/${ARCHIVE}" -C "$tmpdir"
-root="$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d -name "orchestrator-${VERSION}-${PLATFORM}" | head -n 1)"
+root="$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d -name "definitively-${VERSION}-${PLATFORM}" | head -n 1)"
 [[ -n "${root}" ]] || die "unexpected tarball layout"
 
 PREFIX="${PREFIX}" BINDIR="${BINDIR}" bash "${root}/install.sh"
 
-if ! command -v orchestrator >/dev/null 2>&1; then
+if ! command -v definitively >/dev/null 2>&1; then
     echo
     echo "Add ${BINDIR} to your PATH, for example:"
     echo "  export PATH=\"${BINDIR}:\$PATH\""
@@ -152,9 +152,9 @@ fi
 
 if ! command -v escript >/dev/null 2>&1 && ! command -v erl >/dev/null 2>&1; then
     echo
-    echo "note: orchestrator is an escript and needs Erlang/OTP 27+ on PATH at runtime."
+    echo "note: definitively is an escript and needs Erlang/OTP 27+ on PATH at runtime."
     echo "      Install Erlang or use the Nix/devenv flake if you do not have it."
 fi
 
 echo
-echo "=> Done. Try: orchestrator init"
+echo "=> Done. Try: definitively init"

@@ -1,14 +1,14 @@
 ---
-slug: fsm-workflow-orchestrator
-title: FSM Workflow Orchestrator
+slug: fsm-workflow-definitively
+title: FSM Workflow Definitively
 acceptance_criteria:
   - "YAML workflow programs load via Spec.Loader and pass Spec.Validator (initial state, reachable finals, valid on: targets, node refs)."
   - "Nodes.Cli and Nodes.Llm return RawResult; Outcome.Evaluator classifies via medium DSL (exit_code, timeout, signal, jq) into Outcome with verdict_label."
   - "Workflow.Engine is data-driven :gen_statem from Domain.Program and TransitionTable (no hardcoded lint/fix/commit module states)."
-  - "Orchestrator.Run exposes start/status/approve/cancel with ephemeral run registry (one Engine pid per run)."
-  - "CLI supports orchestrator run/status/approve/cancel against a fixture YAML program."
+  - "Definitively.Run exposes start/status/approve/cancel with ephemeral run registry (one Engine pid per run)."
+  - "CLI supports definitively run/status/approve/cancel against a fixture YAML program."
   - "MCP tools workflow_run, workflow_status, workflow_approve mirror the Run API."
-  - "moon run orchestrator:format orchestrator:compile orchestrator:lint orchestrator:test pass; repo pre-commit and pre-push hooks pass."
+  - "moon run definitively:format definitively:compile definitively:lint definitively:test pass; repo pre-commit and pre-push hooks pass."
 non_goals:
   - "Porting Symphony or WORKFLOW.md semantics."
   - "Durable persistence or resume-after-crash for runs."
@@ -18,7 +18,7 @@ risk_class: medium
 mode: heavy
 work_type: new-spec
 ---
-# FSM Workflow Orchestrator — Domain Model Plan
+# FSM Workflow Definitively — Domain Model Plan
 
 ## Product decisions (locked in)
 
@@ -32,9 +32,9 @@ work_type: new-spec
 
 Existing code to evolve—not throw away:
 
-- [`Orchestrator.Outcome`](orchestrator/lib/orchestrator/outcome.ex) — keep as the **verdict** value object after classification
-- [`Orchestrator.Workflow.Engine`](orchestrator/lib/orchestrator/workflow/engine.ex) — replace hardcoded `linting/fixing/committing` with a **data-driven** `:gen_statem` driven by parsed YAML
-- [`Orchestrator.Application`](orchestrator/lib/orchestrator/application.ex) — wire supervision when CLI/MCP land
+- [`Definitively.Outcome`](definitively/lib/definitively/outcome.ex) — keep as the **verdict** value object after classification
+- [`Definitively.Workflow.Engine`](definitively/lib/definitively/workflow/engine.ex) — replace hardcoded `linting/fixing/committing` with a **data-driven** `:gen_statem` driven by parsed YAML
+- [`Definitively.Application`](definitively/lib/definitively/application.ex) — wire supervision when CLI/MCP land
 
 Skills applied: **elixir-otp-design** (layers, gen_statem as service), **elixir-core** (pure core, tagged tuples), **elixir-concurrency** (Task for node execution, back-pressure later).
 
@@ -63,12 +63,12 @@ Keep **Outcome.status** as the FSM input; YAML never mentions `:gen_statem`—on
 ```mermaid
 flowchart TB
   subgraph delivery [Delivery]
-    CLI[Orchestrator.CLI]
-    MCP[Orchestrator.MCP]
+    CLI[Definitively.CLI]
+    MCP[Definitively.MCP]
   end
 
   subgraph app [Application Service]
-    Runner[Orchestrator.Run]
+    Runner[Definitively.Run]
   end
 
   subgraph orchestration [Orchestration]
@@ -112,13 +112,13 @@ flowchart TB
 
 **Responsibility:** Load YAML → validated `Program` struct. No side effects.
 
-Suggested modules under `lib/orchestrator/`:
+Suggested modules under `lib/definitively/`:
 
-- `Orchestrator.Domain.Program` — states, nodes, transitions, metadata
-- `Orchestrator.Domain.NodeDefinition` — `type: cli | llm`, run config, `outcome` rules
-- `Orchestrator.Domain.OutcomeRules` — list of predicates per verdict label
-- `Orchestrator.Spec.Loader` — `load(path) :: {:ok, Program.t()} | {:error, SpecError.t()}`
-- `Orchestrator.Spec.Validator` — cross-checks: all `on:` targets exist, one `initial`, reachable finals, node refs defined
+- `Definitively.Domain.Program` — states, nodes, transitions, metadata
+- `Definitively.Domain.NodeDefinition` — `type: cli | llm`, run config, `outcome` rules
+- `Definitively.Domain.OutcomeRules` — list of predicates per verdict label
+- `Definitively.Spec.Loader` — `load(path) :: {:ok, Program.t()} | {:error, SpecError.t()}`
+- `Definitively.Spec.Validator` — cross-checks: all `on:` targets exist, one `initial`, reachable finals, node refs defined
 
 **YAML shape (v1 sketch)** — single file per program:
 
@@ -172,7 +172,7 @@ states:
 nodes:
   mix_credo:
     kind: cli
-    cwd: orchestrator
+    cwd: definitively
     command: ["mix", "credo", "--strict"]
     timeout_ms: 120000
     outcome:
@@ -239,7 +239,7 @@ No `gen_statem`, no `System.cmd`, no HTTP.
 
 Evaluation order for a node: for each verdict label in YAML order (`success`, then `failure`, …), if **all** predicates in that clause match → emit that label. If none match → `%Outcome{status: :unknown}` and engine uses `on.unknown` if present else stay/retry policy in program defaults.
 
-Extend existing [`Outcome`](orchestrator/lib/orchestrator/outcome.ex):
+Extend existing [`Outcome`](definitively/lib/definitively/outcome.ex):
 
 - `verdict_label` field (atom/string) — which YAML branch fired
 - `raw` optional reference or embedded summary for logs
@@ -250,7 +250,7 @@ Extend existing [`Outcome`](orchestrator/lib/orchestrator/outcome.ex):
 **Responsibility:** Run one node → `RawResult`. Side effects live here only.
 
 ```elixir
-defmodule Orchestrator.Nodes.Executor do
+defmodule Definitively.Nodes.Executor do
   @callback execute(node :: NodeDefinition.t(), ctx :: RunContext.t()) ::
             {:ok, RawResult.t()} | {:error, term()}
 end
@@ -258,8 +258,8 @@ end
 
 | Module | Behavior |
 |--------|----------|
-| `Orchestrator.Nodes.Cli` | `System.cmd` / `Port` with timeout, capture stdout/stderr, cwd from ctx |
-| `Orchestrator.Nodes.Llm` | Invoke agent (command template from ctx), parse stream → `RawResult` with optional JSON envelope |
+| `Definitively.Nodes.Cli` | `System.cmd` / `Port` with timeout, capture stdout/stderr, cwd from ctx |
+| `Definitively.Nodes.Llm` | Invoke agent (command template from ctx), parse stream → `RawResult` with optional JSON envelope |
 
 `RunContext` — ephemeral struct: `workspace_root`, `env`, `run_id`, `attempt`, logger.
 
@@ -269,7 +269,7 @@ Run node work in **`Task.async`** under `Task.Supervisor` (supervision per elixi
 
 **Responsibility:** `RawResult` + `OutcomeRules` → `%Outcome{}`.
 
-- `Orchestrator.Outcome.Evaluator` — delegates to core `OutcomeRules.classify/2`
+- `Definitively.Outcome.Evaluator` — delegates to core `OutcomeRules.classify/2`
 - JQ implementation: shell out to `jq` in v1 (devenv already has tooling culture) or small Elixir library later; document dependency in program README
 
 **Critical separation:** Executors must **not** decide success/failure beyond capturing facts (exit code, parsed JSON, timeouts). All semantics live in YAML + core classifier.
@@ -278,7 +278,7 @@ Run node work in **`Task.async`** under `Task.Supervisor` (supervision per elixi
 
 **Responsibility:** Drive the run using `:gen_statem` + transition table.
 
-Refactor [`Engine`](orchestrator/lib/orchestrator/workflow/engine.ex) from fixed states to **one generic callback module**:
+Refactor [`Engine`](definitively/lib/definitively/workflow/engine.ex) from fixed states to **one generic callback module**:
 
 ```mermaid
 stateDiagram-v2
@@ -319,7 +319,7 @@ Do **not** encode lint/fix/commit in module function names; use `handle_event/4`
 
 ### 6. Application / Run service
 
-`Orchestrator.Run` — facade for CLI and MCP:
+`Definitively.Run` — facade for CLI and MCP:
 
 ```elixir
 start(program_path, opts) :: {:ok, run_id}
@@ -334,8 +334,8 @@ Ephemeral: `Registry` or `DynamicSupervisor` + one `Engine` pid per run (no DB).
 
 | Surface | Commands / tools (illustrative) |
 |---------|----------------------------------|
-| **CLI** (`Orchestrator.CLI`) | `orchestrator run program.yml`, `status`, `approve reject`, `cancel` |
-| **MCP** (`Orchestrator.MCP`) | `workflow_run`, `workflow_status`, `workflow_approve` — thin JSON over same `Run` API |
+| **CLI** (`Definitively.CLI`) | `definitively run program.yml`, `status`, `approve reject`, `cancel` |
+| **MCP** (`Definitively.MCP`) | `workflow_run`, `workflow_status`, `workflow_approve` — thin JSON over same `Run` API |
 
 Both are **boundary** modules: parse args, call `Run`, format output. No FSM logic in CLI/MCP.
 
@@ -352,7 +352,7 @@ sequenceDiagram
   participant Executor
   participant Evaluator
 
-  User->>CLI: orchestrator run dev.yml
+  User->>CLI: definitively run dev.yml
   CLI->>Run: start
   Run->>Engine: start_link program
   Engine->>Executor: execute node
@@ -377,16 +377,16 @@ sequenceDiagram
 |---------|--------|
 | Hardcoded `linting/fixing/committing` in Engine | Table-driven states from `Program` |
 | `{:node_result, %Outcome{}}` only | `{:node_finished, outcome}` + `{:approve, _}` |
-| Demo in [`Orchestrator.run_demo/0`](orchestrator/lib/orchestrator.ex) | `run_demo` loads a fixture YAML |
+| Demo in [`Definitively.run_demo/0`](definitively/lib/definitively.ex) | `run_demo` loads a fixture YAML |
 | No spec layer | `Spec.Loader` + Validator |
 | No executors | `Nodes.Cli`, `Nodes.Llm` behaviours |
 
 ---
 
-## Suggested `lib/orchestrator/` layout (implementation phase)
+## Suggested `lib/definitively/` layout (implementation phase)
 
 ```
-lib/orchestrator/
+lib/definitively/
   domain/
     program.ex
     node_definition.ex
@@ -434,7 +434,7 @@ Tests (elixir-testing): core classifier and transition table as pure tests; Engi
 2. **Evaluator** — predicate structs + classify + extend `Outcome`  
 3. **CLI executor** — minimal `echo` / `mix test` nodes  
 4. **Engine refactor** — data-driven gen_statem + fixture program  
-5. **Run + CLI** — `orchestrator run`  
+5. **Run + CLI** — `definitively run`  
 6. **LLM executor** — agent command + JSON envelope  
 7. **Approval + MCP** — human gates and tools  
 
