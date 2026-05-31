@@ -17,6 +17,7 @@ states:
 nodes:
   agent:
     kind: llm
+    agent: stub
     model: test
     prompt_file: definitively/prompts/test.md
     outcome:

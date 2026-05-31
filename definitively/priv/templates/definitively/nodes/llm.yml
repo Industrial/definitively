@@ -1,0 +1,15 @@
+# Copy-paste LLM node fragments into your program's `nodes:` section.
+# Requires an agent profile under .definitively/agents/<id>.yml
+llm_fix:
+  kind: llm
+  agent: cursor
+  model: auto
+  prompt_file: .definitively/prompts/example.md
+  timeout_ms: 3600000
+  outcome:
+    success:
+      - jq: '.status == "ok"'
+      - signal: fix_complete
+    failure:
+      - timeout: true
+      - signal: refused

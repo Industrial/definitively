@@ -36,7 +36,7 @@ definitively run "$PWD/.definitively/programs/dev-quality-loop.yml"
 
 Workspace root is inferred from the program path (parent of `.definitively/`). Optional override: `DEFINITIVELY_WORKSPACE`.
 
-LLM fix steps use `DEFINITIVELY_CURSOR_AGENT` (set in devenv) (see [env.example](env.example)).
+LLM fix steps use the `cursor` agent profile (see [agents/cursor.yml](agents/cursor.yml) and [env.example](env.example)). devenv sets `DEFINITIVELY_AGENT=cursor`.
 
 ### Develop the engine
 
@@ -64,11 +64,11 @@ For AI-assisted repair, run [dev-quality-loop.yml](programs/dev-quality-loop.yml
 
 Program: [programs/plan-mission.yml](programs/plan-mission.yml)
 
-Drives a full Maestro heavy-mode mission from any plan markdown (including Cursor `.plan.md` files). **No Cursor-specific step** — pass the plan path via env.
+Drives a full Maestro heavy-mode mission from any plan markdown (including Cursor `.plan.md` files). Pass the plan path via CLI input:
 
 ```bash
-export DEFINITIVELY_PLAN_FILE="$PWD/.cursor/plans/your.plan.md"
-definitively run "$PWD/.definitively/programs/plan-mission.yml"
+definitively run "$PWD/.definitively/programs/plan-mission.yml" \
+  --plan-file "$PWD/.cursor/plans/your.plan.md"
 ```
 
 Flow: init → LLM spec → validate → mission → LLM decompose → wave loop (claim → implement → gate → fix → evidence → verify → verdict → ship).

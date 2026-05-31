@@ -33,6 +33,7 @@ defmodule Definitively.InitTest do
     gitkeep = Path.join([workspace, ".definitively", "visualizations", ".gitkeep"])
     gitignore = Path.join([workspace, ".definitively", ".gitignore"])
     state_gitkeep = Path.join([workspace, ".definitively", "state", ".gitkeep"])
+    cursor_profile = Path.join([workspace, ".definitively", "agents", "cursor.yml"])
 
     assert File.regular?(program)
     assert File.regular?(env)
@@ -40,6 +41,7 @@ defmodule Definitively.InitTest do
     assert File.regular?(gitkeep)
     assert File.regular?(gitignore)
     assert File.regular?(state_gitkeep)
+    assert File.regular?(cursor_profile)
     assert File.read!(gitignore) =~ "state/*"
     assert File.read!(program) =~ "id: example"
   end

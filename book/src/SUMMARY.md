@@ -16,11 +16,13 @@
 # Part III — Authoring programs
 
 - [Program structure](./authoring/structure.md)
+- [Program inputs](./authoring/program-inputs.md)
 - [States and transitions](./authoring/states.md)
 - [CLI nodes](./authoring/cli-nodes.md)
 - [Git nodes](./authoring/git-nodes.md)
 - [GitHub (`gh`) nodes](./authoring/gh-nodes.md)
 - [LLM nodes](./authoring/llm-nodes.md)
+- [Agent profiles](./authoring/agent-profiles.md)
 - [Outcome rules](./authoring/outcomes.md)
 - [Validation errors](./authoring/validation.md)
 

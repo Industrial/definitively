@@ -1,7 +1,7 @@
 defmodule Definitively.Spec.Loader do
   @moduledoc "Load YAML workflow programs into `Definitively.Domain.Program`."
 
-  alias Definitively.Domain.{NodeDefinition, Program, StateDefinition}
+  alias Definitively.Domain.{NodeDefinition, Program, ProgramInput, StateDefinition}
   alias Definitively.Log
   alias Definitively.Spec.{Error, Validator}
 
@@ -49,6 +49,7 @@ defmodule Definitively.Spec.Loader do
 
   defp build_program(raw, path) do
     with {:ok, meta} <- fetch_program_meta(raw, path),
+         {:ok, inputs} <- parse_inputs(Map.get(program_section(raw), "inputs"), path),
          {:ok, states} <- parse_states(Map.get(raw, "states"), path),
          {:ok, nodes} <- parse_nodes(Map.get(raw, "nodes"), path) do
       {:ok,
@@ -56,11 +57,73 @@ defmodule Definitively.Spec.Loader do
          id: meta.id,
          version: meta.version,
          initial: meta.initial,
+         inputs: inputs,
          states: states,
          nodes: nodes
        }}
     end
   end
+
+  defp program_section(raw), do: Map.get(raw, "program", %{})
+
+  defp parse_inputs(nil, _path), do: {:ok, %{}}
+  defp parse_inputs(inputs, _path) when inputs == %{}, do: {:ok, %{}}
+
+  defp parse_inputs(inputs, path) when is_map(inputs) do
+    inputs
+    |> Enum.reduce_while({:ok, %{}}, fn {name, defn}, {:ok, acc} ->
+      case parse_input(name, defn, path) do
+        {:ok, input} -> {:cont, {:ok, Map.put(acc, input.name, input)}}
+        {:error, _} = err -> {:halt, err}
+      end
+    end)
+  end
+
+  defp parse_inputs(_, path),
+    do: {:error, Error.new(:invalid_inputs, "program.inputs must be a map", path)}
+
+  defp parse_input(name, defn, path) when is_map(defn) do
+    with {:ok, input_name} <- atom_or_error(name, path, "program.inputs.#{name}"),
+         {:ok, type} <- parse_input_type(Map.get(defn, "type", "string"), path, name),
+         required <- Map.get(defn, "required", false),
+         default <- Map.get(defn, "default"),
+         :ok <- validate_input_default(required, default, path, name) do
+      {:ok,
+       %ProgramInput{
+         name: input_name,
+         type: type,
+         required: required == true,
+         default: default,
+         description: Map.get(defn, "description")
+       }}
+    end
+  end
+
+  defp parse_input(name, _, path),
+    do: {:error, Error.new(:invalid_input, "program.inputs.#{name} must be a map", path)}
+
+  defp parse_input_type(type, _path, _name) when type in ["path", "string"],
+    do: {:ok, String.to_atom(type)}
+
+  defp parse_input_type(type, path, name),
+    do:
+      {:error,
+       Error.new(
+         :invalid_input_type,
+         "program.inputs.#{name}.type must be path or string, got #{inspect(type)}",
+         path
+       )}
+
+  defp validate_input_default(true, default, path, name) when not is_nil(default),
+    do:
+      {:error,
+       Error.new(
+         :invalid_input_default,
+         "program.inputs.#{name} is required and must not declare default",
+         path
+       )}
+
+  defp validate_input_default(_required, _default, _path, _name), do: :ok
 
   defp fetch_program_meta(raw, path) do
     case Map.get(raw, "program") do
@@ -177,6 +240,7 @@ defmodule Definitively.Spec.Loader do
          {:ok, command} <- parse_command(Map.get(defn, "command"), path, id),
          {:ok, action} <- parse_action(Map.get(defn, "action"), path, id),
          {:ok, options} <- parse_options(Map.get(defn, "options"), path, id),
+         {:ok, agent} <- parse_agent(Map.get(defn, "agent"), path, id),
          {:ok, outcome} <- parse_outcome(Map.get(defn, "outcome", %{}), path, id) do
       {:ok,
        %NodeDefinition{
@@ -189,6 +253,7 @@ defmodule Definitively.Spec.Loader do
          timeout_ms: Map.get(defn, "timeout_ms"),
          model: Map.get(defn, "model"),
          prompt_file: Map.get(defn, "prompt_file"),
+         agent: agent,
          outcome: outcome
        }}
     end
@@ -196,6 +261,14 @@ defmodule Definitively.Spec.Loader do
 
   defp parse_node(id, _, path),
     do: {:error, Error.new(:invalid_node, "node #{id} must be a map", path)}
+
+  defp parse_agent(nil, _path, _id), do: {:ok, nil}
+
+  defp parse_agent(agent, path, id) when is_binary(agent),
+    do: atom_or_error(agent, path, "nodes.#{id}.agent")
+
+  defp parse_agent(_agent, path, id),
+    do: {:error, Error.new(:invalid_agent, "nodes.#{id}.agent must be a string", path)}
 
   defp parse_node_kind(kind, _path, _id) when kind in ["cli", "llm", "git", "gh", "maestro"],
     do: {:ok, String.to_atom(kind)}

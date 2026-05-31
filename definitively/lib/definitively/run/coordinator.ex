@@ -137,6 +137,7 @@ defmodule Definitively.Run.Coordinator do
     ctx = %RunContext{
       run_id: run_id,
       workspace_root: workspace,
+      inputs: Map.new(Keyword.get(opts, :inputs, [])),
       env: Map.new(Keyword.get(opts, :env, []))
     }
 

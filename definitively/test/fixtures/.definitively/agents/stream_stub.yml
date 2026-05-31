@@ -1,0 +1,13 @@
+agent:
+  id: stream_stub
+  executable: sh
+  argv:
+    - "-c"
+    - 'printf "%s\n" "{\"type\":\"result\",\"result\":{\"status\":\"ok\",\"signals\":{\"fix_complete\":true}}}"'
+  prompt:
+    mode: stdin
+  output:
+    format: stream_json
+    extract: last_json_line
+    envelope_path: result
+    success_status: ok

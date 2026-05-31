@@ -137,5 +137,14 @@ defmodule Definitively.Spec.LoaderTest do
     assert {:error, %{reason: :invalid_predicate}} = Loader.load(fixture("invalid_predicate.yml"))
   end
 
+  test "parses program inputs" do
+    path = fixture("with_inputs.yml")
+    assert {:ok, program} = Loader.load(path)
+    assert %{plan_file: plan, agent: agent} = program.inputs
+    assert plan.required
+    assert plan.type == :path
+    assert agent.default == "cursor"
+  end
+
   defp fixture(name), do: Path.expand("../../fixtures/#{name}", __DIR__)
 end

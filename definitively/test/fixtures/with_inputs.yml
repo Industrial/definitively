@@ -1,0 +1,21 @@
+program:
+  id: with_inputs
+  version: 1
+  initial: idle
+  inputs:
+    plan_file:
+      type: path
+      required: true
+      description: Plan path
+    agent:
+      type: string
+      required: false
+      default: cursor
+states:
+  idle:
+    type: passive
+    on:
+      start: done
+  done:
+    type: final
+nodes: {}

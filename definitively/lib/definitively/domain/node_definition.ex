@@ -15,6 +15,7 @@ defmodule Definitively.Domain.NodeDefinition do
           timeout_ms: pos_integer() | nil,
           model: String.t() | nil,
           prompt_file: String.t() | nil,
+          agent: atom() | nil,
           outcome: outcome_clause()
         }
 
@@ -28,6 +29,7 @@ defmodule Definitively.Domain.NodeDefinition do
     :timeout_ms,
     :model,
     :prompt_file,
+    :agent,
     outcome: %{}
   ]
 

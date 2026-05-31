@@ -1,6 +1,8 @@
 defmodule Definitively.Maestro.RunStateTest do
   use ExUnit.Case
 
+  import ExUnit.CaptureLog
+
   alias Definitively.Maestro.RunState
 
   setup do
@@ -27,5 +29,36 @@ defmodule Definitively.Maestro.RunStateTest do
 
     assert RunState.get(tmp, "mission_id") == "pln-keep-me"
     assert RunState.get(tmp, "task_id") == "tsk-1"
+  end
+
+  test "init_plan reads run inputs first", %{tmp: tmp} do
+    plan = Path.join(tmp, "from-input.plan.md")
+    File.write!(plan, "# plan")
+
+    assert :ok = RunState.init_plan(tmp, %{"inputs" => %{"plan_file" => plan}})
+    assert RunState.get(tmp, "plan_file") == plan
+  end
+
+  test "init_plan warns on deprecated env var", %{tmp: tmp} do
+    plan = Path.join(tmp, "from-env.plan.md")
+    File.write!(plan, "# plan")
+
+    prev = System.get_env("DEFINITIVELY_PLAN_FILE")
+    System.put_env("DEFINITIVELY_PLAN_FILE", plan)
+
+    on_exit(fn ->
+      case prev do
+        nil -> System.delete_env("DEFINITIVELY_PLAN_FILE")
+        v -> System.put_env("DEFINITIVELY_PLAN_FILE", v)
+      end
+    end)
+
+    log =
+      capture_log(fn ->
+        assert :ok = RunState.init_plan(tmp, %{})
+      end)
+
+    assert log =~ "deprecated"
+    assert RunState.get(tmp, "plan_file") == plan
   end
 end

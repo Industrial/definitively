@@ -1,0 +1,12 @@
+agent:
+  id: stub
+  executable: sh
+  argv:
+    - "-c"
+    - "read _; printf '%s' '{\"status\":\"ok\",\"signals\":{\"fix_complete\":true}}'"
+  prompt:
+    mode: stdin
+  output:
+    format: json
+    extract: whole_stdout
+    success_status: ok

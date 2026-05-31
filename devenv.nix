@@ -225,7 +225,6 @@ in {
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
         export DEFINITIVELY_WORKSPACE="$DEVENV_ROOT"
-        export DEFINITIVELY_CURSOR_AGENT="/run/current-system/sw/bin/cursor-agent"
         "$DEVENV_ROOT/definitively/definitively" run "$DEVENV_ROOT/.definitively/programs/pre-commit-gate.yml"
       '';
     };
@@ -277,6 +276,8 @@ in {
 
     export MIX_ENV=dev
     export DEFINITIVELY_WORKSPACE="$DEVENV_ROOT"
+    export DEFINITIVELY_AGENT=cursor
+    export DEFINITIVELY_AGENT_CURSOR_EXECUTABLE=/run/current-system/sw/bin/cursor-agent
 
     # Hex ETS cache can corrupt (:badfile); remove before deps.get so direnv stays clean.
     hex_cache="$HOME/.hex/cache.ets"

@@ -214,6 +214,34 @@ defmodule Definitively.CLITest do
     assert {:error, _, 1} = CLI.dispatch(["run", bad])
   end
 
+  test "dispatch run --help lists declared inputs" do
+    with_workspace_program(Path.expand("../fixtures/with_inputs.yml", __DIR__), fn program,
+                                                                                   _workspace ->
+      output = capture_io(fn -> assert :ok = CLI.dispatch(["run", "--help", program]) end)
+      assert output =~ "with_inputs"
+      assert output =~ "--plan-file"
+    end)
+  end
+
+  test "dispatch run accepts declared inputs and completes" do
+    with_workspace_program(Path.expand("../fixtures/with_inputs.yml", __DIR__), fn program,
+                                                                                   _workspace ->
+      assert :ok = CLI.dispatch(["run", program, "--plan-file", "plans/x.md"])
+    end)
+  end
+
+  test "dispatch run rejects missing required input" do
+    with_workspace_program(Path.expand("../fixtures/with_inputs.yml", __DIR__), fn program,
+                                                                                   _workspace ->
+      assert {:error, {:missing_required, ["--plan-file"]}, 1} = CLI.dispatch(["run", program])
+    end)
+  end
+
+  test "dispatch run rejects unknown flag on program without inputs" do
+    assert {:error, {:unknown_flag, "--nope", _known}, 1} =
+             CLI.dispatch(["run", @fixture, "--nope", "x"])
+  end
+
   defp with_workspace_program(fixture, fun) do
     tmp = Path.join(System.tmp_dir!(), "orch_cli_ws_#{System.unique_integer()}")
     programs = Path.join([tmp, ".definitively", "programs"])

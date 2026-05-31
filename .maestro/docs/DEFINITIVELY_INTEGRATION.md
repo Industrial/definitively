@@ -8,7 +8,7 @@ How to combine **Maestro** (multi-session task harness) with **Definitively** (Y
 Agent session
   └─ Maestro          spec, mission, task claim/verify/ship, evidence, handoffs
        └─ Definitively   synchronous FSM: gates, LLM fix loops, git/gh nodes
-            └─ subprocesses   moon, mix, cursor-agent, git, gh
+            └─ subprocesses   moon, mix, agent CLI (via profile), git, gh
 ```
 
 | Concern | Owner |
@@ -19,6 +19,19 @@ Agent session
 | Single-run orchestration graph | Definitively |
 
 Maestro owns **lifecycle**; Definitively owns **execution graphs** within one wave.
+
+## Agent profiles and program inputs (v0.4.0)
+
+LLM nodes no longer inline vendor argv. Each node declares `agent: cursor` (or another profile id); definitively loads `.definitively/agents/<id>.yml` to build `{executable, argv}`, deliver the prompt, and parse stdout. Set a workspace default with `DEFINITIVELY_AGENT=cursor` (devenv does this automatically). Override the binary path via profile `executable_env` — e.g. `DEFINITIVELY_AGENT_CURSOR_EXECUTABLE` on NixOS.
+
+Programs declare run parameters under `program.inputs`. Pass values as CLI flags before the FSM starts:
+
+```bash
+definitively run "$PWD/.definitively/programs/plan-mission.yml" \
+  --plan-file "$PWD/.cursor/plans/your.plan.md"
+```
+
+`DEFINITIVELY_PLAN_FILE` still works for one release but logs a deprecation warning. See book chapters [Agent profiles](https://industrial.github.io/definitively/authoring/agent-profiles.html) and [Program inputs](https://industrial.github.io/definitively/authoring/program-inputs.html).
 
 ## End-to-end flow: Cursor plan → shipped mission
 
@@ -138,7 +151,7 @@ For each child task in dependency order:
 
 1. `maestro task claim <tsk-id>`
 2. `maestro plan check --task <id> --plan-file .cursor/plans/<plan>.plan.md` (or wave-specific plan slice)
-3. `definitively run .definitively/programs/missions/<slug>/wave-NN.yml`
+3. `definitively run "$PWD/.definitively/programs/plan-mission.yml" --plan-file "$PWD/.cursor/plans/<plan>.plan.md"` (or a wave-specific program when present)
 4. On `done` final state:
    - `maestro evidence record --task <id> --command ".maestro/bootstrap/validation/verify-gate.sh" --exit 0`
    - `maestro task verify <id>`
@@ -162,6 +175,8 @@ When all child tasks are `shipped`, mission is complete. Optional final program:
 | dev-quality-loop (gates + LLM fix) | ✓ |
 | Maestro verify scripts | ✓ `.maestro/bootstrap/validation/verify-*.sh` |
 | git / gh node kinds | ✓ v0.3.0 |
+| Agent profiles (`.definitively/agents/`) | ✓ v0.4.0 |
+| Program CLI inputs (`--plan-file`, etc.) | ✓ v0.4.0 |
 | `plan-mission.yml` end-to-end program | ✓ |
 | `maestro` node kind (init, spec, mission, claim, verify, ship) | ✓ v0.4.0 |
 | Wave program template per mission | superseded by `plan-mission.yml` |

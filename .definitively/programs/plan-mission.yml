@@ -2,6 +2,11 @@ program:
   id: plan_mission
   version: 1
   initial: idle
+  inputs:
+    plan_file:
+      type: path
+      required: true
+      description: Plan markdown (Cursor .plan.md or any planning doc)
 states:
   idle:
     type: passive
@@ -88,13 +93,14 @@ states:
     type: active
     node: maestro_task_verify
     on:
-      success: verdict
+      success: ship
       failure: fix_wave
   verdict:
     type: active
     node: maestro_verdict
     on:
       success: ship
+      partial: ship
       failure: fix_wave
   ship:
     type: active
@@ -147,7 +153,14 @@ nodes:
     kind: maestro
     action: verdict_request
     timeout_ms: 600000
-    outcome: *maestro_ok
+    outcome:
+      success:
+        - exit_code: 0
+      partial:
+        - exit_code: 2
+      failure:
+        - exit_code: {neq: 0}
+        - exit_code: {neq: 2}
   maestro_ship:
     kind: maestro
     action: task_ship
@@ -165,23 +178,10 @@ nodes:
         - exit_code: {neq: 0}
   llm_spec_from_plan:
     kind: llm
+    agent: cursor
     model: auto
     prompt_file: .definitively/prompts/maestro-spec-from-plan.md
     timeout_ms: 3600000
-    command: &cursor_agent
-      - cursor-agent
-      - agent
-      - --force
-      - --approve-mcps
-      - --model
-      - auto
-      - --workspace
-      - "."
-      - --trust
-      - --print
-      - --output-format
-      - stream-json
-      - --
     outcome: &llm_outcome
       success:
         - jq: '.status == "ok"'
@@ -194,26 +194,26 @@ nodes:
     model: auto
     prompt_file: .definitively/prompts/maestro-decompose-from-plan.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome
   llm_implement_wave:
     kind: llm
     model: auto
     prompt_file: .definitively/prompts/maestro-implement-wave.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome
   llm_fix_wave:
     kind: llm
     model: auto
     prompt_file: .definitively/prompts/maestro-fix-wave.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome
   llm_evidence_wave:
     kind: llm
     model: auto
     prompt_file: .definitively/prompts/maestro-evidence-wave.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome

@@ -44,19 +44,10 @@ moon_lint:
 
 ## LLM fix nodes
 
-Fix nodes share a YAML anchor for `cursor-agent` command and outcome rules:
+Fix nodes share a YAML anchor for the agent profile and outcome rules:
 
 ```yaml
-command: &cursor_agent
-  - cursor-agent
-  - agent
-  - --force
-  - --workspace
-  - "."
-  - --print
-  - --output-format
-  - stream-json
-  - --
+agent: &cursor_agent cursor
 outcome: &llm_outcome
   success:
     - jq: '.status == "ok"'
@@ -66,11 +57,14 @@ outcome: &llm_outcome
     - signal: refused
 ```
 
+The `cursor` profile (`.definitively/agents/cursor.yml`) supplies argv and stream-json parsing — no inlined `cursor-agent` command in the program.
+
 ## Running it
 
-From the definitively repo root (with moon and cursor-agent on PATH):
+From the definitively repo root (with moon and cursor-agent on PATH, or `DEFINITIVELY_AGENT_CURSOR_EXECUTABLE` set):
 
 ```bash
+export DEFINITIVELY_AGENT=cursor   # devenv sets this automatically
 definitively run "$PWD/.definitively/programs/dev-quality-loop.yml"
 ```
 

@@ -178,24 +178,10 @@ nodes:
         - exit_code: 0
   llm_fix_lint:
     kind: llm
+    agent: cursor
     model: auto
     prompt_file: .definitively/prompts/fix-lint.md
     timeout_ms: 3600000
-    command: &cursor_agent
-      - cursor-agent
-      - agent
-      - --force
-      - --approve-mcps
-      - --model
-      - auto
-      - --workspace
-      - "."
-      - --trust
-      - --print
-      - --output-format
-      - stream-json
-      - --stream-partial-output
-      - --
     outcome: &llm_outcome
       success:
         - jq: '.status == "ok"'
@@ -208,47 +194,47 @@ nodes:
     model: auto
     prompt_file: .definitively/prompts/fix-doctor.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome
   llm_fix_test:
     kind: llm
     model: auto
     prompt_file: .definitively/prompts/fix-test.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome
   llm_fix_coverage:
     kind: llm
     model: auto
     prompt_file: .definitively/prompts/fix-coverage.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome
   llm_fix_docs:
     kind: llm
     model: auto
     prompt_file: .definitively/prompts/fix-docs.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome
   llm_fix_build:
     kind: llm
     model: auto
     prompt_file: .definitively/prompts/fix-build.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome
   llm_ship:
     kind: llm
     model: auto
     prompt_file: .definitively/prompts/ship-commit.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome
   llm_fix_commit:
     kind: llm
     model: auto
     prompt_file: .definitively/prompts/fix-ship-commit.md
     timeout_ms: 3600000
-    command: *cursor_agent
+    agent: cursor
     outcome: *llm_outcome

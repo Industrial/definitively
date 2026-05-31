@@ -1,0 +1,14 @@
+# Minimal stub profile — no external agent CLI required.
+# Set DEFINITIVELY_AGENT=example to use as the default profile.
+agent:
+  id: example
+  executable: sh
+  argv:
+    - "-c"
+    - "read _; printf '%s' '{\"status\":\"ok\",\"signals\":{\"fix_complete\":true}}'"
+  prompt:
+    mode: stdin
+  output:
+    format: json
+    extract: whole_stdout
+    success_status: ok

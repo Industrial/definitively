@@ -5,6 +5,10 @@ program:
   id: string          # required
   version: integer    # required
   initial: state_name # required
+  inputs:                  # optional CLI inputs
+    plan_file:
+      type: path
+      required: true
 
 states:
   <name>:
@@ -16,7 +20,8 @@ states:
 nodes:
   <id>:
     kind: cli | llm | git | gh
-    command: [argv, ...]       # cli, llm
+    command: [argv, ...]       # cli; llm (legacy)
+    agent: profile_id            # llm (preferred)
     action: status | commit | pr_create | run_watch | ...
     options: { key: value }    # git, gh
     cwd: path

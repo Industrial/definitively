@@ -42,8 +42,9 @@ defmodule Definitively.Domain.MaestroAction do
 
   def build_argv(:evidence_record, opts, workspace) do
     with {:ok, task_id} <- require_state_or_opt(opts, workspace, "task_id"),
-         command <- Map.get(opts, "command") || Map.get(opts, :command) ||
-           ".maestro/bootstrap/validation/verify-gate.sh",
+         command <-
+           Map.get(opts, "command") || Map.get(opts, :command) ||
+             ".maestro/bootstrap/validation/verify-gate.sh",
          exit <- Map.get(opts, "exit") || Map.get(opts, :exit) || 0 do
       {:ok,
        [
@@ -113,7 +114,11 @@ defmodule Definitively.Domain.MaestroAction do
     case RunState.get(workspace, "task_id") do
       id when is_binary(id) and id != "" ->
         {put_signal(%{}, :has_tasks, true),
-         %{"has_tasks" => true, "task_id" => id, "task_slug" => RunState.get(workspace, "task_slug")}}
+         %{
+           "has_tasks" => true,
+           "task_id" => id,
+           "task_slug" => RunState.get(workspace, "task_slug")
+         }}
 
       _ ->
         {put_signal(%{}, :no_tasks, true), %{"has_tasks" => false}}
@@ -162,12 +167,17 @@ defmodule Definitively.Domain.MaestroAction do
   defp handle_claim_list(mission_id, workspace, stdout, runner) do
     case Jason.decode(stdout) do
       {:ok, %{"items" => items}} ->
-        handle_claim_items(mission_id, workspace, items, stdout, runner)
+        draft_items = Enum.filter(items, &draft_task?/1)
+        handle_claim_items(mission_id, workspace, draft_items, stdout, runner)
 
       _ ->
         {:ok, {1, stdout, %{}, %{"error" => "failed to parse task list"}}}
     end
   end
+
+  defp draft_task?(%{"state" => state}) when state in ~w(shipped abandoned), do: false
+  defp draft_task?(%{"id" => _}), do: true
+  defp draft_task?(_), do: false
 
   defp handle_claim_items(_mission_id, workspace, [], _stdout, _runner) do
     RunState.put(workspace, %{"task_id" => nil, "task_slug" => nil})
@@ -177,7 +187,13 @@ defmodule Definitively.Domain.MaestroAction do
     {:ok, {0, "", signals, data}}
   end
 
-  defp handle_claim_items(mission_id, workspace, [%{"id" => task_id, "slug" => slug} | _], _stdout, runner) do
+  defp handle_claim_items(
+         mission_id,
+         workspace,
+         [%{"id" => task_id, "slug" => slug} | _],
+         _stdout,
+         runner
+       ) do
     run_task_claim(mission_id, workspace, task_id, slug, runner)
   end
 
@@ -252,10 +268,19 @@ defmodule Definitively.Domain.MaestroAction do
 
   defp mission_id_from_line(line, slug) do
     case Jason.decode(line) do
-      {:ok, %{"slug" => ^slug, "id" => id}} when is_binary(id) and id != "" -> id
-      _ -> nil
+      {:ok, %{"slug" => ^slug, "id" => id} = row} when is_binary(id) and id != "" ->
+        if reusable_mission?(row), do: id, else: nil
+
+      _ ->
+        nil
     end
   end
+
+  defp reusable_mission?(%{"state" => state})
+       when state in ~w(approved planned in-progress intake),
+       do: true
+
+  defp reusable_mission?(_), do: false
 
   defp extract_existing_mission_slug(output) do
     case Regex.run(~r/Mission with slug ([^\s]+) already exists/, output) do
@@ -282,12 +307,14 @@ defmodule Definitively.Domain.MaestroAction do
   end
 
   defp require_state_or_opt(opts, workspace, key) do
-    value = Map.get(opts, key) || Map.get(opts, String.to_atom(key)) || RunState.get(workspace, key)
+    value =
+      Map.get(opts, key) || Map.get(opts, String.to_atom(key)) || RunState.get(workspace, key)
 
     if is_binary(value) and value != "" do
       {:ok, value}
     else
-      {:error, {:invalid_options, String.to_atom(key), "#{key} is required in run state or options"}}
+      {:error,
+       {:invalid_options, String.to_atom(key), "#{key} is required in run state or options"}}
     end
   end
 

@@ -3,18 +3,17 @@ defmodule Definitively.Nodes.Llm do
   Runs LLM nodes by invoking a configurable runner and parsing a JSON envelope.
 
   Configure `config :definitively, :llm_runner` as `{Mod, :fun, extra_args}` for
-  tests; default runs a shell command from the node's `command` list or env stub.
+  tests; default runs a shell command from the node's `agent` profile, `command`
+  list, or `DEFINITIVELY_LLM_COMMAND` stub.
   """
 
   @behaviour Definitively.Nodes.Executor
 
-  alias Definitively.Domain.{NodeDefinition, RawResult}
+  alias Definitively.AgentProfile.{Builder, Loader, OutputParser}
+  alias Definitively.Domain.{AgentProfile, NodeDefinition, RawResult}
   alias Definitively.Log
   alias Definitively.Nodes.StreamCmd
   alias Definitively.Workflow.RunContext
-
-  @cursor_agent_bin "cursor-agent"
-  @cursor_agent_default "/run/current-system/sw/bin/cursor-agent"
 
   @impl Definitively.Nodes.Executor
   @spec execute(NodeDefinition.t(), RunContext.t()) ::
@@ -58,19 +57,88 @@ defmodule Definitively.Nodes.Llm do
 
   defp run_command(node, ctx, prompt) do
     timeout_ms = node.timeout_ms || 600_000
-    {executable, args} = command_argv(node, prompt)
 
+    with {:ok, build} <- resolve_build(node, ctx, prompt) do
+      execute_build(build, node, ctx, timeout_ms, prompt)
+    end
+  end
+
+  defp resolve_build(node, ctx, prompt) do
+    cond do
+      is_list(node.command) and node.command != [] ->
+        {:ok, {:command, command_argv(node, prompt), AgentProfile.legacy_output()}}
+
+      agent_id = resolve_agent_id(node, ctx) ->
+        with {:ok, profile} <- Loader.load(agent_id, ctx.workspace_root),
+             {:ok, built} <- Builder.build(profile, node, prompt) do
+          {:ok, {:profile, built, profile.output}}
+        end
+
+      true ->
+        {:ok, {:command, command_argv(node, prompt), AgentProfile.legacy_output()}}
+    end
+  end
+
+  defp resolve_agent_id(%NodeDefinition{agent: agent}, %RunContext{inputs: inputs}) do
+    cond do
+      not is_nil(agent) -> agent
+      agent_input = Map.get(inputs, "agent") || Map.get(inputs, :agent) -> to_string(agent_input)
+      env = System.get_env("DEFINITIVELY_AGENT") -> String.to_atom(env)
+      true -> nil
+    end
+  end
+
+  defp execute_build(
+         {:command, {executable, args}, output_config},
+         node,
+         ctx,
+         timeout_ms,
+         _prompt
+       ) do
+    stream_run(executable, args, nil, node, ctx, timeout_ms, output_config)
+  end
+
+  defp execute_build(
+         {:profile, {executable, args, stdin_prompt}, output_config},
+         node,
+         ctx,
+         timeout_ms,
+         _prompt
+       ) do
+    stream_run(executable, args, stdin_prompt, node, ctx, timeout_ms, output_config)
+  end
+
+  defp execute_build(
+         {:profile, {executable, args}, output_config},
+         node,
+         ctx,
+         timeout_ms,
+         _prompt
+       ) do
+    stream_run(executable, args, nil, node, ctx, timeout_ms, output_config)
+  end
+
+  defp stream_run(executable, args, stdin_prompt, node, ctx, timeout_ms, output_config) do
     Log.debug("llm node execute",
       node_id: node.id,
       model: node.model,
+      agent: node.agent,
       prompt_file: node.prompt_file,
       timeout_ms: timeout_ms
     )
 
+    if is_binary(stdin_prompt) do
+      run_with_stdin(executable, args, stdin_prompt, node, ctx, timeout_ms, output_config)
+    else
+      run_streaming(executable, args, node, ctx, timeout_ms, output_config)
+    end
+  end
+
+  defp run_streaming(executable, args, _node, ctx, timeout_ms, output_config) do
     opts = [
       cd: ctx.workspace_root,
       timeout_ms: timeout_ms,
-      complete: &stream_complete?/1
+      complete: &OutputParser.stream_complete?(&1, output_config)
     ]
 
     case StreamCmd.run(executable, args, opts) do
@@ -78,7 +146,7 @@ defmodule Definitively.Nodes.Llm do
         {:ok, %RawResult{timed_out: true, stdout: output, duration_ms: duration_ms}}
 
       {:ok, {output, 0, duration_ms}} ->
-        parse_json_output(output, duration_ms)
+        parse_output(output, duration_ms, output_config)
 
       {:ok, {output, code, duration_ms}} ->
         {:ok,
@@ -86,8 +154,54 @@ defmodule Definitively.Nodes.Llm do
     end
   end
 
-  defp parse_json_output(output, duration_ms) do
-    case extract_llm_json(output) do
+  defp run_with_stdin(executable, args, prompt, _node, ctx, timeout_ms, output_config) do
+    started = System.monotonic_time(:millisecond)
+    exe = StreamCmd.resolve_executable(executable)
+
+    port_opts = [
+      :binary,
+      :exit_status,
+      {:args, Enum.map(args, &String.to_charlist/1)},
+      {:cd, String.to_charlist(ctx.workspace_root)},
+      :stderr_to_stdout
+    ]
+
+    port = Port.open({:spawn_executable, String.to_charlist(exe)}, port_opts)
+    Port.command(port, prompt)
+
+    case collect_stdin_port(port, timeout_ms, "", started) do
+      {output, 0} ->
+        duration_ms = System.monotonic_time(:millisecond) - started
+        parse_output(output, duration_ms, output_config)
+
+      {output, code} ->
+        duration_ms = System.monotonic_time(:millisecond) - started
+
+        {:ok,
+         %RawResult{exit_code: code, stdout: output, duration_ms: duration_ms, timed_out: false}}
+
+      {:timed_out, output, duration_ms} ->
+        {:ok, %RawResult{timed_out: true, stdout: output, duration_ms: duration_ms}}
+    end
+  end
+
+  defp collect_stdin_port(port, timeout_ms, acc, started) do
+    receive do
+      {^port, {:data, chunk}} ->
+        collect_stdin_port(port, timeout_ms, acc <> chunk, started)
+
+      {^port, {:exit_status, status}} ->
+        {acc, status}
+    after
+      timeout_ms ->
+        Port.close(port)
+        duration_ms = System.monotonic_time(:millisecond) - started
+        {:timed_out, acc, duration_ms}
+    end
+  end
+
+  defp parse_output(output, duration_ms, output_config) do
+    case OutputParser.parse(output, output_config) do
       {:ok, map} ->
         {:ok,
          %RawResult{
@@ -109,61 +223,10 @@ defmodule Definitively.Nodes.Llm do
     end
   end
 
-  defp extract_llm_json(output) do
-    case Jason.decode(output) do
-      {:ok, %{} = map} -> {:ok, map}
-      _ -> extract_llm_json_from_lines(output)
-    end
-  end
-
-  defp extract_llm_json_from_lines(output) do
-    line_result =
-      output
-      |> String.split("\n", trim: true)
-      |> Enum.reverse()
-      |> Enum.find_value(&decode_llm_line/1)
-
-    case line_result do
-      {:ok, _} = ok ->
-        ok
-
-      _ ->
-        if ok_envelope_in_stream?(output) do
-          {:ok, %{"status" => "ok", "signals" => %{"fix_complete" => true}}}
-        else
-          :error
-        end
-    end
-  end
-
-  defp decode_llm_line(line) do
-    case Jason.decode(line) do
-      {:ok, %{"status" => _} = map} ->
-        {:ok, map}
-
-      {:ok, %{"type" => "result", "result" => %{} = result}} ->
-        {:ok, result}
-
-      {:ok, %{"type" => "result", "subtype" => "success"} = envelope} ->
-        {:ok, envelope}
-
-      _ ->
-        nil
-    end
-  end
-
   @doc false
   @spec stream_complete?(String.t()) :: boolean()
   def stream_complete?(output) when is_binary(output) do
-    case extract_llm_json(output) do
-      {:ok, %{"status" => "ok"}} -> true
-      _ -> false
-    end
-  end
-
-  defp ok_envelope_in_stream?(output) do
-    String.contains?(output, ~S("status":"ok")) and
-      String.contains?(output, ~S("fix_complete":true))
+    OutputParser.stream_complete?(output, AgentProfile.legacy_output())
   end
 
   defp enrich_raw(%RawResult{llm_json: %{} = json} = raw) do
@@ -180,15 +243,6 @@ defmodule Definitively.Nodes.Llm do
   defp normalize_signals(signals) when is_map(signals), do: signals
   defp normalize_signals(_), do: %{}
 
-  @doc false
-  @spec resolve_executable(String.t()) :: String.t()
-  def resolve_executable(@cursor_agent_bin), do: cursor_agent_executable()
-  def resolve_executable(executable) when is_binary(executable), do: executable
-
-  defp cursor_agent_executable do
-    System.get_env("DEFINITIVELY_CURSOR_AGENT") || @cursor_agent_default
-  end
-
   defp command_argv(%NodeDefinition{command: cmd}, prompt) when is_list(cmd) and cmd != [] do
     case Enum.split(cmd, -1) do
       {prefix, ["--"]} -> split_executable(prefix ++ ["--", prompt])
@@ -198,7 +252,7 @@ defmodule Definitively.Nodes.Llm do
 
   defp command_argv(_node, _prompt), do: split_executable(llm_command())
 
-  defp split_executable([executable | args]), do: {resolve_executable(executable), args}
+  defp split_executable([executable | args]), do: {executable, args}
   defp split_executable(_), do: {"", []}
 
   defp llm_command do

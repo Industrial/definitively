@@ -19,7 +19,8 @@ defmodule Definitively.Maestro.RunState do
 
   @doc "Returns the sealed state file path."
   @spec sealed_path(Path.t()) :: Path.t()
-  def sealed_path(workspace_root), do: Path.join([workspace_root, ".definitively", "state", @sealed_filename])
+  def sealed_path(workspace_root),
+    do: Path.join([workspace_root, ".definitively", "state", @sealed_filename])
 
   @doc "Loads run state; missing file returns empty map."
   @spec load(Path.t()) :: t()
@@ -60,26 +61,57 @@ defmodule Definitively.Maestro.RunState do
     end
   end
 
-  @doc "Initializes plan file from options or `DEFINITIVELY_PLAN_FILE` env."
+  @doc "Initializes plan file from run inputs, options, or deprecated env vars."
   @spec init_plan(Path.t(), map() | nil) :: :ok | {:error, term()}
   def init_plan(workspace_root, opts \\ nil) do
+    opts = normalize_opts(opts)
+
     plan_file =
-      plan_from_opts(opts) ||
-        System.get_env("DEFINITIVELY_PLAN_FILE") ||
-        System.get_env("DEFINITIVELY_PLAN")
+      plan_from_inputs(opts) ||
+        plan_from_opts(opts) ||
+        plan_from_env()
 
     if is_binary(plan_file) and plan_file != "" do
       expanded = Path.expand(plan_file, workspace_root)
       put(workspace_root, %{"plan_file" => expanded})
       seal(workspace_root, %{"plan_file" => expanded})
     else
-      {:error, {:missing_plan_file, "set DEFINITIVELY_PLAN_FILE or options.plan_file"}}
+      {:error,
+       {:missing_plan_file, "pass --plan-file or set DEFINITIVELY_PLAN_FILE (deprecated)"}}
     end
   end
+
+  defp normalize_opts(nil), do: %{}
+  defp normalize_opts(opts) when is_map(opts), do: stringify_keys(opts)
+  defp normalize_opts(_), do: %{}
+
+  defp plan_from_inputs(%{"inputs" => inputs}) when is_map(inputs),
+    do: Map.get(inputs, "plan_file")
+
+  defp plan_from_inputs(%{inputs: inputs}) when is_map(inputs),
+    do: Map.get(inputs, "plan_file") || Map.get(inputs, :plan_file)
+
+  defp plan_from_inputs(_), do: nil
 
   defp plan_from_opts(%{"plan_file" => path}) when is_binary(path), do: path
   defp plan_from_opts(%{plan_file: path}) when is_binary(path), do: path
   defp plan_from_opts(_), do: nil
+
+  defp plan_from_env do
+    env =
+      System.get_env("DEFINITIVELY_PLAN_FILE") ||
+        System.get_env("DEFINITIVELY_PLAN")
+
+    if is_binary(env) and env != "" do
+      require Logger
+
+      Logger.warning(
+        "DEFINITIVELY_PLAN_FILE is deprecated; pass --plan-file to definitively run instead"
+      )
+
+      env
+    end
+  end
 
   defp sanitize_put(attrs) do
     Map.new(attrs, fn {k, v} ->

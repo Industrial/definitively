@@ -24,4 +24,14 @@ defmodule Definitively.Spec.ValidatorTest do
     path = Path.expand("../../fixtures/unreachable_final.yml", __DIR__)
     assert {:error, %Error{reason: :unreachable_final}} = Loader.load(path)
   end
+
+  test "rejects llm node with both agent and command" do
+    path = Path.expand("../../fixtures/llm_agent_command_conflict.yml", __DIR__)
+    assert {:error, %Error{reason: :conflicting_llm_source}} = Loader.load(path)
+  end
+
+  test "rejects llm node without prompt_file" do
+    path = Path.expand("../../fixtures/llm_missing_prompt.yml", __DIR__)
+    assert {:error, %Error{reason: :missing_prompt_file}} = Loader.load(path)
+  end
 end

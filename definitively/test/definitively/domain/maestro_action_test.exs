@@ -78,6 +78,7 @@ defmodule Definitively.Domain.MaestroActionTest do
     File.write!(RunState.path(tmp), "{}")
     assert RunState.get(tmp, "mission_id") == "pln-test-999"
   end
+
   test "recover_existing_mission resolves id from missions.jsonl", %{tmp: tmp} do
     missions_dir = Path.join([tmp, ".maestro", "missions"])
     File.mkdir_p!(missions_dir)
@@ -102,4 +103,37 @@ defmodule Definitively.Domain.MaestroActionTest do
              )
   end
 
+  test "recover_existing_mission ignores cancelled missions", %{tmp: tmp} do
+    missions_dir = Path.join([tmp, ".maestro", "missions"])
+    File.mkdir_p!(missions_dir)
+
+    line =
+      ~s({"id":"pln-cancelled","slug":"agent-profile-refactor-054927eb","state":"cancelled"})
+
+    File.write!(Path.join(missions_dir, "missions.jsonl"), line <> "\n")
+
+    stderr =
+      "maestro mission from-spec: Mission with slug agent-profile-refactor-054927eb already exists\n"
+
+    assert :error = MaestroAction.recover_existing_mission(stderr, tmp)
+  end
+
+  test "run_claim_next skips shipped tasks when list includes them", %{tmp: tmp} do
+    list_json =
+      ~s({"items":[{"id":"tsk-shipped","slug":"done","state":"shipped"},{"id":"tsk-next","slug":"wave-two","state":"draft"}],"total":2})
+
+    runner = fn
+      _exe, ["task", "list" | _], _opts ->
+        {:ok, %{exit_code: 0, stdout: list_json}}
+
+      _exe, ["task", "claim", "tsk-next"], _opts ->
+        {:ok, %{exit_code: 0, stdout: "claimed"}}
+    end
+
+    assert {:ok, {0, "claimed", signals, data}} =
+             MaestroAction.run_claim_next("pln-x", tmp, runner)
+
+    assert signals[:has_tasks]
+    assert data["task_id"] == "tsk-next"
+  end
 end

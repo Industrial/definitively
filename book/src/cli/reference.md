@@ -2,7 +2,8 @@
 
 ```text
 definitively init [--force]
-definitively run </full/path/to/program.yml>
+definitively run </full/path/to/program.yml> [--input-flag value ...]
+definitively run --help </full/path/to/program.yml>
 definitively visualize </full/path/to/program.yml> [--format dot|png|svg] [--out <basename>]
 ```
 
@@ -23,10 +24,13 @@ Executes a program synchronously.
 | Requirement | Detail |
 |-------------|--------|
 | Program path | Full path to YAML under `.definitively/` |
+| Input flags | Declared under `program.inputs` (e.g. `--plan-file path`) |
 | Success output | Prints `workflow finished` |
 | Exit 0 | Run reached a final state successfully |
 | Exit 1 | Load error, execution error, or workflow failure |
 | Exit 2 | Stuck at approval gate without auto label |
+
+Use `definitively run --help <program.yml>` to list declared inputs without executing.
 
 ## `visualize`
 

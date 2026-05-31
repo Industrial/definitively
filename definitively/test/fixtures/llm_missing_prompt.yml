@@ -1,0 +1,21 @@
+program:
+  id: llm_missing_prompt
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: run
+  run:
+    type: active
+    node: agent
+    on:
+      success: done
+  done:
+    type: final
+nodes:
+  agent:
+    kind: llm
+    agent: stub
+    model: test

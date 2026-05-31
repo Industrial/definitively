@@ -1,0 +1,25 @@
+agent:
+  id: cursor
+  executable: cursor-agent
+  executable_env: DEFINITIVELY_AGENT_CURSOR_EXECUTABLE
+  argv:
+    - agent
+    - --force
+    - --approve-mcps
+    - --model
+    - "{{model}}"
+    - --workspace
+    - "."
+    - --trust
+    - --print
+    - --output-format
+    - stream-json
+    - --stream-partial-output
+    - --
+  prompt:
+    mode: argv_after_delimiter
+  output:
+    format: stream_json
+    extract: last_json_line
+    envelope_path: result
+    success_status: ok

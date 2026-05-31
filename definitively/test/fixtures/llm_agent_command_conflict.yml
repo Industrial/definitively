@@ -1,0 +1,21 @@
+program:
+  id: llm_conflict
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: active
+    node: bad
+    on:
+      success: done
+  done:
+    type: final
+nodes:
+  bad:
+    kind: llm
+    agent: stub
+    command: ["echo"]
+    prompt_file: definitively/prompts/test.md
+    outcome:
+      success:
+        - jq: '.status == "ok"'

@@ -20,7 +20,7 @@ A **node** is a reusable unit of work referenced by active states:
 | `cli` | A shell command (argv list) |
 | `git` | Structured git operations (`status`, `commit`, `push`, …) |
 | `gh` | GitHub CLI operations (`pr_create`, `run_watch`, …) |
-| `llm` | An LLM agent via configurable command + prompt file |
+| `llm` | An LLM agent via [agent profile](./authoring/agent-profiles.md) or raw `command` + prompt file |
 
 Nodes define **outcome rules** that classify raw results (exit code, timeout, JSON, signals) into labels like `success`, `failure`, or `partial`.
 

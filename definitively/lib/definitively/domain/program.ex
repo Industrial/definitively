@@ -1,17 +1,18 @@
 defmodule Definitively.Domain.Program do
   @moduledoc "Immutable workflow definition loaded from YAML."
 
-  alias Definitively.Domain.{NodeDefinition, StateDefinition}
+  alias Definitively.Domain.{NodeDefinition, ProgramInput, StateDefinition}
 
   @type t :: %__MODULE__{
           id: String.t(),
           version: pos_integer(),
           initial: atom(),
+          inputs: %{atom() => ProgramInput.t()},
           states: %{atom() => StateDefinition.t()},
           nodes: %{atom() => NodeDefinition.t()}
         }
 
-  defstruct [:id, :version, :initial, :states, :nodes]
+  defstruct [:id, :version, :initial, :states, :nodes, inputs: %{}]
 
   @doc "Resolves the active node definition for a state name, if the state is active."
   @spec active_node(t(), atom()) :: {:ok, NodeDefinition.t()} | {:error, :not_active}

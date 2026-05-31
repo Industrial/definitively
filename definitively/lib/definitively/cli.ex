@@ -1,10 +1,12 @@
 defmodule Definitively.CLI do
   @moduledoc "Command-line interface for workflow runs and program visualization."
 
+  alias Definitively.CLI.InputParser
   alias Definitively.Init
   alias Definitively.Log
   alias Definitively.MCP.Serve
   alias Definitively.Run.Coordinator
+  alias Definitively.Spec.Loader
   alias Definitively.Visualize
   alias Definitively.Workspace
 
@@ -34,8 +36,11 @@ defmodule Definitively.CLI do
   @spec dispatch([String.t()]) :: :ok | {:error, term(), non_neg_integer()} | :usage
   def dispatch(argv) do
     case argv do
-      ["run", program_path | _opts] ->
-        dispatch_run(program_path)
+      ["run", "--help", program_path] ->
+        dispatch_run_help(program_path)
+
+      ["run", program_path | rest] ->
+        dispatch_run(program_path, rest)
 
       ["visualize", program_path | rest] ->
         dispatch_visualize(program_path, rest)
@@ -51,10 +56,10 @@ defmodule Definitively.CLI do
     end
   end
 
-  defp dispatch_run(program_path) do
+  defp dispatch_run(program_path, rest) do
     case Workspace.resolve_run(program_path) do
       {:ok, resolved} ->
-        run_resolved_program(resolved)
+        run_resolved_program(resolved, rest)
 
       {:error, :enoent} ->
         {:error, :invalid_program_path, 1}
@@ -67,25 +72,54 @@ defmodule Definitively.CLI do
     end
   end
 
-  defp run_resolved_program(resolved) do
+  defp dispatch_run_help(program_path) do
+    with {:ok, resolved} <- Workspace.resolve_run(program_path),
+         {:ok, program} <- Loader.load(resolved.program_path) do
+      print_run_help(program, resolved.program_path)
+      :ok
+    else
+      {:error, :enoent} -> {:error, :invalid_program_path, 1}
+      {:error, :no_definitively_layout} -> {:error, :no_definitively_layout, 1}
+      {:error, reason} -> {:error, reason, 1}
+    end
+  end
+
+  defp run_resolved_program(resolved, rest) do
     Log.info("run requested",
       program: resolved.program_path,
       workspace: resolved.workspace_root
     )
 
-    opts = run_opts(resolved)
+    with {:ok, program} <- Loader.load(resolved.program_path),
+         {:ok, inputs} <- InputParser.parse(rest, program, resolved.workspace_root) do
+      opts = run_opts(resolved) ++ [inputs: inputs]
 
-    case Coordinator.run_until_final(resolved.program_path, opts) do
-      :ok ->
-        :ok
+      case Coordinator.run_until_final(resolved.program_path, opts) do
+        :ok ->
+          :ok
 
-      {:error, :awaiting_approval} ->
-        {:error, :awaiting_approval, 2}
+        {:error, :awaiting_approval} ->
+          {:error, :awaiting_approval, 2}
 
+        {:error, reason} ->
+          Log.error("workflow failed", error: inspect(reason))
+          {:error, reason, 1}
+      end
+    else
       {:error, reason} ->
-        Log.error("workflow failed", error: inspect(reason))
         {:error, reason, 1}
     end
+  end
+
+  defp print_run_help(program, program_path) do
+    IO.puts("""
+    Program: #{program.id} (v#{program.version})
+    Path: #{program_path}
+
+    Inputs:
+    """)
+
+    Enum.each(InputParser.help_lines(program), &IO.puts/1)
   end
 
   defp maybe_prepare_mcp_serve!(["mcp", "serve" | _]) do
@@ -160,6 +194,23 @@ defmodule Definitively.CLI do
   defp format_error(:templates_missing),
     do: "definitively templates not found — reinstall or rebuild the definitively package"
 
+  defp format_error({:unknown_flag, flag, known}) do
+    hints =
+      case known do
+        [] -> ""
+        flags -> " Declared inputs: #{Enum.join(flags, ", ")}"
+      end
+
+    "unknown flag #{flag} — only declared program inputs are accepted.#{hints}"
+  end
+
+  defp format_error({:missing_required, flags}) do
+    "missing required input(s): #{Enum.join(flags, ", ")}"
+  end
+
+  defp format_error({:duplicate_flag, flag}), do: "duplicate flag #{flag}"
+  defp format_error({:missing_value, flag}), do: "flag #{flag} requires a value"
+
   defp format_error(reason) when is_binary(reason), do: reason
   defp format_error(reason), do: "workflow failed: #{inspect(reason)}"
 
@@ -191,7 +242,8 @@ defmodule Definitively.CLI do
     IO.puts(:stderr, """
     Usage:
       definitively init [--force]
-      definitively run </full/path/to/program.yml>
+      definitively run </full/path/to/program.yml> [--input-flag value ...]
+      definitively run --help </full/path/to/program.yml>
       definitively visualize </full/path/to/program.yml> [--format dot|png|svg] [--out <basename>]
       definitively mcp serve
 

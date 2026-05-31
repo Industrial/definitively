@@ -14,7 +14,7 @@ defmodule Definitively.Domain.GitAction do
       []
       |> maybe_add("--staged", truthy?(Map.get(opts, "staged") || Map.get(opts, :staged)))
       |> maybe_add("--stat", truthy?(Map.get(opts, "stat") || Map.get(opts, :stat)))
-      |> then(&(["diff" | &1]))
+      |> then(&["diff" | &1])
 
     {:ok, args}
   end
@@ -84,7 +84,10 @@ defmodule Definitively.Domain.GitAction do
       args =
         ["commit", "-m", message]
         |> maybe_add("--amend", truthy?(Map.get(opts, "amend") || Map.get(opts, :amend)))
-        |> maybe_add("--allow-empty", truthy?(Map.get(opts, "allow_empty") || Map.get(opts, :allow_empty)))
+        |> maybe_add(
+          "--allow-empty",
+          truthy?(Map.get(opts, "allow_empty") || Map.get(opts, :allow_empty))
+        )
 
       case stage_argv_for_commit(opts) do
         {:ok, add_argv} -> {:ok, {:multi, [add_argv, args]}}
@@ -128,8 +131,12 @@ defmodule Definitively.Domain.GitAction do
     name = Map.get(opts, "name") || Map.get(opts, :name)
 
     with true <- is_binary(name) and name != "",
-         tag_args <- tag_create_argv(name, Map.get(opts, "message") || Map.get(opts, :message),
-           truthy?(Map.get(opts, "annotate") || Map.get(opts, :annotate))) do
+         tag_args <-
+           tag_create_argv(
+             name,
+             Map.get(opts, "message") || Map.get(opts, :message),
+             truthy?(Map.get(opts, "annotate") || Map.get(opts, :annotate))
+           ) do
       maybe_push_tag(tag_args, name, opts)
     else
       _ -> {:error, {:invalid_options, :tag, "name is required"}}

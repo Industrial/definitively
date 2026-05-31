@@ -49,8 +49,12 @@ defmodule Definitively.Run.CoordinatorTest do
     assert :ok = Coordinator.run_until_final(path)
   end
 
-  test "run_until_final drives llm_step fixture" do
+  test "run_until_final drives llm_step fixture via agent profile" do
     llm = Path.expand("../../fixtures/llm_step.yml", __DIR__)
+    prev_runner = Application.get_env(:definitively, :llm_runner)
+    Application.put_env(:definitively, :llm_runner, nil)
+    on_exit(fn -> Application.put_env(:definitively, :llm_runner, prev_runner) end)
+
     assert :ok = Coordinator.run_until_final(llm)
   end
 

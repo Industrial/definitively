@@ -147,6 +147,15 @@ defmodule Definitively.Spec.Validator do
     {:error, Error.new(:missing_prompt_file, "llm node #{inspect(id)} requires prompt_file")}
   end
 
+  defp check_node_kind_fields(id, %NodeDefinition{kind: :llm, agent: agent, command: command})
+       when not is_nil(agent) and not is_nil(command) do
+    {:error,
+     Error.new(
+       :conflicting_llm_source,
+       "llm node #{inspect(id)} must not declare both agent and command"
+     )}
+  end
+
   defp check_node_kind_fields(id, %NodeDefinition{kind: kind, action: nil})
        when kind in [:git, :gh, :maestro] do
     {:error, Error.new(:missing_action, "#{kind} node #{inspect(id)} requires action")}

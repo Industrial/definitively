@@ -76,5 +76,5 @@ brew install definitively
 | Erlang/OTP 27+ | Yes (Hex/source) | escript interpreter |
 | Graphviz `dot` | Optional | `visualize` PNG/SVG |
 | moon | Optional | Programs with moon CLI nodes |
-| cursor-agent | Optional | LLM nodes in quality loop |
+| cursor-agent (or other agent CLI) | Optional | LLM nodes via [agent profiles](../authoring/agent-profiles.md) |
 | git | Optional | Programs with git CLI nodes |

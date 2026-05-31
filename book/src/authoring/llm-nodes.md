@@ -4,19 +4,10 @@
 nodes:
   llm_fix_lint:
     kind: llm
+    agent: cursor
     model: auto
     prompt_file: .definitively/prompts/fix-lint.md
     timeout_ms: 3600000
-    command:
-      - cursor-agent
-      - agent
-      - --force
-      - --workspace
-      - "."
-      - --print
-      - --output-format
-      - stream-json
-      - --
     outcome:
       success:
         - jq: '.status == "ok"'
@@ -32,10 +23,13 @@ nodes:
 |-------|----------|-------------|
 | `kind` | yes | Must be `llm` |
 | `prompt_file` | yes | Path to markdown prompt (relative to workspace root) |
-| `command` | yes | argv prefix for the LLM runner; prompt appended after `--` |
-| `model` | no | Model hint passed to runner |
+| `agent` | one of | Profile id under `.definitively/agents/` |
+| `command` | one of | Raw argv prefix (mutually exclusive with `agent`) |
+| `model` | no | Model hint passed to the agent profile (`{{model}}` interpolation) |
 | `timeout_ms` | no | Session timeout |
-| `outcome` | yes | Often uses `jq` on stream JSON and `signal` predicates |
+| `outcome` | yes | Often uses `jq` on parsed agent output and `signal` predicates |
+
+Exactly one of `agent` or `command` is required. Prefer `agent` — see [Agent profiles](./agent-profiles.md).
 
 ## Prompt files
 
@@ -43,4 +37,8 @@ Store prompts under `.definitively/prompts/`. Reference them by path in `prompt_
 
 The dev quality loop uses one prompt per fix step (`fix-lint.md`, `fix-test.md`, etc.).
 
-**Try it:** Copy `prompts/example.md` from templates and wire a minimal LLM node (use stub runner in dev if no agent installed).
+## Default agent
+
+Set `DEFINITIVELY_AGENT=cursor` (or another profile id) when nodes omit `agent`. Override the binary path via profile `executable_env` — see [Environment variables](../workspace/environment.md).
+
+**Try it:** Copy `prompts/example.md` from templates, wire a minimal LLM node with `agent: cursor`, and run against a stub profile in dev if no agent is installed.
