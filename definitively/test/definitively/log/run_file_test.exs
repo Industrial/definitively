@@ -61,6 +61,7 @@ defmodule Definitively.Log.RunFileTest do
     assert content =~ "executing node"
     assert content =~ "node_id=echo"
     assert content =~ "from_state=run"
+    assert content =~ "hello\n"
     assert content =~ "run finished"
     assert [line] = Regex.scan(~r/run log opened/, content)
     assert line == ["run log opened"]

@@ -167,11 +167,7 @@ defmodule Definitively.Nodes.Llm do
   defp llm_command do
     case System.get_env("DEFINITIVELY_LLM_COMMAND") do
       nil ->
-        [
-          "sh",
-          "-c",
-          "printf '%s' '{\"status\":\"ok\",\"signals\":{\"fix_complete\":true}}'"
-        ]
+        ["printf", ~s({"status":"ok","signals":{"fix_complete":true}})]
 
       line ->
         String.split(line, " ", trim: true)

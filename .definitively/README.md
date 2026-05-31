@@ -57,7 +57,7 @@ Inside `definitively/`, `mix definitively …` delegates to the same CLI (for co
 ### Logging
 
 Set `ORCHESTRATOR_LOG_LEVEL` to one of `TRACE`, `DEBUG`, `INFO` (default), `WARN`, or `ERROR`.
-State transitions, node execution, outcomes, and subprocess lifecycle are logged via OTP `Logger`.
+Workflow events (state transitions, node execution, outcomes) are logged via OTP `Logger`. Subprocess stdout/stderr is mirrored byte-for-byte into the same run log file while a run is active.
 
 ## Git hook gate programs
 

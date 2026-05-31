@@ -58,6 +58,28 @@ defmodule Definitively.Log.RunFile do
     :ok
   end
 
+  @doc """
+  Appends raw subprocess stdout/stderr to the active run log file.
+
+  Uses direct file append so node output matches the terminal byte-for-byte
+  (Logger formatting is reserved for workflow events).
+  """
+  @spec write_output(String.t()) :: :ok
+  def write_output(data) when is_binary(data) and data != "" do
+    case Process.get(@active_key) do
+      nil -> :ok
+      path -> File.write!(path, data, [:append])
+    end
+  end
+
+  def write_output(_), do: :ok
+
+  @doc false
+  @spec active_log_path() :: Path.t() | nil
+  def active_log_path do
+    Process.get(@active_key) || Application.get_env(:definitively, :run_log_path)
+  end
+
   @doc false
   @spec log_path(Path.t(), Path.t()) :: Path.t()
   def log_path(workspace_root, program_path) do
@@ -93,12 +115,13 @@ defmodule Definitively.Log.RunFile do
 
   defp open!(path) do
     File.mkdir_p!(Path.dirname(path))
+    File.write!(path, "", [:write])
 
     formatter = console_formatter()
 
     config = %{
       file: String.to_charlist(path),
-      modes: [:write],
+      modes: [:append],
       max_no_files: 1,
       max_no_bytes: 50_000_000
     }

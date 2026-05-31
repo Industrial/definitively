@@ -65,14 +65,14 @@ defmodule Definitively.CLI do
   end
 
   defp run_resolved_program(resolved) do
-    Log.info("run requested",
-      program: resolved.program_path,
-      workspace: resolved.workspace_root
-    )
-
     opts = run_opts(resolved)
 
     case RunFile.with_log(resolved.workspace_root, resolved.program_path, opts, fn opts ->
+           Log.info("run requested",
+             program: resolved.program_path,
+             workspace: resolved.workspace_root
+           )
+
            Coordinator.run_until_final(resolved.program_path, opts)
          end) do
       :ok ->
@@ -157,9 +157,14 @@ defmodule Definitively.CLI do
   end
 
   defp print_success(["run" | _]) do
-    case Application.get_env(:definitively, :run_log_path) do
-      nil -> IO.puts("workflow finished")
-      path -> IO.puts("workflow finished — log: #{path}")
+    case RunFile.active_log_path() do
+      nil ->
+        IO.puts("workflow finished")
+
+      path ->
+        line = "workflow finished — log: #{path}\n"
+        RunFile.write_output(line)
+        IO.write(:stdio, line)
     end
   end
   defp print_success(["visualize" | _]), do: :ok

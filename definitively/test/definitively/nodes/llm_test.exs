@@ -78,11 +78,17 @@ defmodule Definitively.Nodes.LlmTest do
   describe "command runner" do
     setup do
       prev_runner = Application.get_env(:definitively, :llm_runner)
+      prev_llm_command = System.get_env("DEFINITIVELY_LLM_COMMAND")
       Application.put_env(:definitively, :llm_runner, nil)
+      System.delete_env("DEFINITIVELY_LLM_COMMAND")
 
       on_exit(fn ->
         Application.put_env(:definitively, :llm_runner, prev_runner)
-        System.delete_env("DEFINITIVELY_LLM_COMMAND")
+
+        case prev_llm_command do
+          nil -> System.delete_env("DEFINITIVELY_LLM_COMMAND")
+          val -> System.put_env("DEFINITIVELY_LLM_COMMAND", val)
+        end
       end)
 
       :ok
