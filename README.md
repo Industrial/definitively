@@ -29,6 +29,7 @@ Pin a release: `bash -s -- --version definitively-v0.2.0`. See the [Install chan
 | Workspace setup | [`.definitively/` layout](https://industrial.github.io/definitively/workspace/layout.html) |
 | Write programs | [Authoring programs](https://industrial.github.io/definitively/authoring/structure.html) |
 | Git and GitHub nodes | [Git nodes](https://industrial.github.io/definitively/authoring/git-nodes.html) · [gh nodes](https://industrial.github.io/definitively/authoring/gh-nodes.html) |
+| Git hooks (gate programs) | [Hook integration](https://industrial.github.io/definitively/patterns/hook-integration.html) |
 | Git/PR/CI pattern | [Git and GitHub automation](https://industrial.github.io/definitively/patterns/git-gh-automation.html) |
 | Quality loop example | [Dev quality loop](https://industrial.github.io/definitively/patterns/dev-quality-loop.html) |
 | CLI reference | [Commands and flags](https://industrial.github.io/definitively/cli/reference.html) |

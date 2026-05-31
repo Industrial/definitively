@@ -28,6 +28,7 @@
 
 - [Case study: dev quality loop](./patterns/dev-quality-loop.md)
 - [Git and GitHub automation](./patterns/git-gh-automation.md)
+- [Git hook integration](./patterns/hook-integration.md)
 - [Retry and fix loops](./patterns/retry-loops.md)
 - [Approval gates](./patterns/approval-gates.md)
 - [Visualizing workflows](./patterns/visualizing.md)

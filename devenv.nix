@@ -219,25 +219,27 @@ in {
       '';
     };
 
-    # Pre-commit: fast gates (format + credo + doctor doc/spec coverage)
+    # Pre-commit: definitively gate program (format, lint, doctor — no LLM)
     pre-commit = {
       exec = ''
         mkdir -p "$DEVENV_ROOT/tmp"
         export TMPDIR="$DEVENV_ROOT/tmp"
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
-        moon run :format :lint :doctor :test :coverage :docs :build
+        export DEFINITIVELY_WORKSPACE="$DEVENV_ROOT"
+        definitively run "$DEVENV_ROOT/.definitively/programs/pre-commit-gate.yml"
       '';
     };
 
-    # Pre-push: full definitively pipeline (tests, coverage, ExDoc, compile)
+    # Pre-push: definitively gate program (full CI parity + book build — no LLM)
     pre-push = {
       exec = ''
         mkdir -p "$DEVENV_ROOT/tmp"
         export TMPDIR="$DEVENV_ROOT/tmp"
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
-        moon run :format :lint :doctor :test :coverage :docs :build
+        export DEFINITIVELY_WORKSPACE="$DEVENV_ROOT"
+        definitively run "$DEVENV_ROOT/.definitively/programs/pre-push-gate.yml"
       '';
     };
 

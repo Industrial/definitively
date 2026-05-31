@@ -1,0 +1,51 @@
+program:
+  id: pre_commit_gate
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: format
+  format:
+    type: active
+    node: moon_format
+    on:
+      success: lint
+      failure: failed
+  lint:
+    type: active
+    node: moon_lint
+    on:
+      success: doctor
+      failure: failed
+  doctor:
+    type: active
+    node: moon_doctor
+    on:
+      success: done
+      failure: failed
+  done:
+    type: final
+  failed:
+    type: final
+nodes:
+  moon_format:
+    kind: cli
+    command: ["moon", "run", ":format"]
+    timeout_ms: 120000
+    outcome: &gate_outcome
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  moon_lint:
+    kind: cli
+    command: ["moon", "run", "definitively:lint"]
+    timeout_ms: 300000
+    outcome: *gate_outcome
+  moon_doctor:
+    kind: cli
+    command: ["moon", "run", "definitively:doctor"]
+    timeout_ms: 120000
+    outcome: *gate_outcome

@@ -1,0 +1,106 @@
+program:
+  id: pre_push_gate
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: format
+  format:
+    type: active
+    node: moon_format
+    on:
+      success: lint
+      failure: failed
+  lint:
+    type: active
+    node: moon_lint
+    on:
+      success: doctor
+      failure: failed
+  doctor:
+    type: active
+    node: moon_doctor
+    on:
+      success: test
+      failure: failed
+  test:
+    type: active
+    node: moon_test
+    on:
+      success: coverage
+      failure: failed
+  coverage:
+    type: active
+    node: moon_coverage
+    on:
+      success: docs
+      failure: failed
+  docs:
+    type: active
+    node: moon_docs
+    on:
+      success: build
+      failure: failed
+  build:
+    type: active
+    node: moon_build
+    on:
+      success: book
+      failure: failed
+  book:
+    type: active
+    node: moon_book
+    on:
+      success: done
+      failure: failed
+  done:
+    type: final
+  failed:
+    type: final
+nodes:
+  moon_format:
+    kind: cli
+    command: ["moon", "run", ":format"]
+    timeout_ms: 120000
+    outcome: &gate_outcome
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  moon_lint:
+    kind: cli
+    command: ["moon", "run", "definitively:lint"]
+    timeout_ms: 300000
+    outcome: *gate_outcome
+  moon_doctor:
+    kind: cli
+    command: ["moon", "run", "definitively:doctor"]
+    timeout_ms: 120000
+    outcome: *gate_outcome
+  moon_test:
+    kind: cli
+    command: ["moon", "run", "definitively:test"]
+    timeout_ms: 300000
+    outcome: *gate_outcome
+  moon_coverage:
+    kind: cli
+    command: ["moon", "run", "definitively:coverage"]
+    timeout_ms: 300000
+    outcome: *gate_outcome
+  moon_docs:
+    kind: cli
+    command: ["moon", "run", "definitively:docs"]
+    timeout_ms: 300000
+    outcome: *gate_outcome
+  moon_build:
+    kind: cli
+    command: ["moon", "run", "definitively:build"]
+    timeout_ms: 600000
+    outcome: *gate_outcome
+  moon_book:
+    kind: cli
+    command: ["moon", "run", ":book-build"]
+    timeout_ms: 300000
+    outcome: *gate_outcome

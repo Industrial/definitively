@@ -47,3 +47,17 @@ Inside `definitively/`, `mix definitively …` delegates to the same CLI (for co
 
 Set `ORCHESTRATOR_LOG_LEVEL` to one of `TRACE`, `DEBUG`, `INFO` (default), `WARN`, or `ERROR`.
 State transitions, node execution, outcomes, and subprocess lifecycle are logged via OTP `Logger`.
+
+## Git hook gate programs
+
+Installed by devenv/prek — **no LLM**, fail fast on first broken gate.
+
+| Program | Hook | Chain |
+|---------|------|-------|
+| [programs/pre-commit-gate.yml](programs/pre-commit-gate.yml) | pre-commit | format → lint → doctor |
+| [programs/pre-push-gate.yml](programs/pre-push-gate.yml) | pre-push | … → test → coverage → docs → build → book-build |
+
+For AI-assisted repair, run [dev-quality-loop.yml](programs/dev-quality-loop.yml) manually — do not wire it into hooks.
+
+See the [Hook integration](https://industrial.github.io/definitively/patterns/hook-integration.html) book chapter.
+
