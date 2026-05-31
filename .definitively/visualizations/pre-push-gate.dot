@@ -1,0 +1,33 @@
+digraph G {
+
+  v0 [label="format\n(active)\n→ moon_format",shape="box",style="filled",fillcolor="lightyellow",fontname="Helvetica"]
+  v1 [label="idle\n(passive)",shape="ellipse",style="filled",fillcolor="lightblue",fontname="Helvetica",penwidth="3",color="darkgreen"]
+  v2 [label="done\n(final)",shape="doublecircle",style="filled",fillcolor="lightgray",fontname="Helvetica"]
+  v3 [label="lint\n(active)\n→ moon_lint",shape="box",style="filled",fillcolor="lightyellow",fontname="Helvetica"]
+  v4 [label="build\n(active)\n→ moon_build",shape="box",style="filled",fillcolor="lightyellow",fontname="Helvetica"]
+  v5 [label="docs\n(active)\n→ moon_docs",shape="box",style="filled",fillcolor="lightyellow",fontname="Helvetica"]
+  v6 [label="book\n(active)\n→ moon_book",shape="box",style="filled",fillcolor="lightyellow",fontname="Helvetica"]
+  v7 [label="failed\n(final)",shape="doublecircle",style="filled",fillcolor="lightgray",fontname="Helvetica"]
+  v8 [label="coverage\n(active)\n→ moon_coverage",shape="box",style="filled",fillcolor="lightyellow",fontname="Helvetica"]
+  v9 [label="doctor\n(active)\n→ moon_doctor",shape="box",style="filled",fillcolor="lightyellow",fontname="Helvetica"]
+  v10 [label="test\n(active)\n→ moon_test",shape="box",style="filled",fillcolor="lightyellow",fontname="Helvetica"]
+
+  v0 -> v3 [label="success"]
+  v0 -> v7 [label="failure"]
+  v1 -> v0 [label="start"]
+  v3 -> v9 [label="success"]
+  v3 -> v7 [label="failure"]
+  v4 -> v6 [label="success"]
+  v4 -> v7 [label="failure"]
+  v5 -> v4 [label="success"]
+  v5 -> v7 [label="failure"]
+  v6 -> v2 [label="success"]
+  v6 -> v7 [label="failure"]
+  v8 -> v5 [label="success"]
+  v8 -> v7 [label="failure"]
+  v9 -> v10 [label="success"]
+  v9 -> v7 [label="failure"]
+  v10 -> v8 [label="success"]
+  v10 -> v7 [label="failure"]
+
+}
