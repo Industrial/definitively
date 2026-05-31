@@ -1,0 +1,3 @@
+# Runtime state (maestro-run.json, sealed keys, etc.)
+state/*
+!state/.gitkeep

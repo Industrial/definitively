@@ -51,26 +51,7 @@ defmodule Definitively.CLI do
   defp dispatch_run(program_path) do
     case Workspace.resolve_run(program_path) do
       {:ok, resolved} ->
-        Log.info("run requested",
-          program: resolved.program_path,
-          workspace: resolved.workspace_root
-        )
-
-        opts = run_opts(resolved)
-
-        case RunFile.with_log(resolved.workspace_root, resolved.program_path, fn ->
-               Coordinator.run_until_final(resolved.program_path, opts)
-             end) do
-          :ok ->
-            :ok
-
-          {:error, :awaiting_approval} ->
-            {:error, :awaiting_approval, 2}
-
-          {:error, reason} ->
-            Log.error("workflow failed", error: inspect(reason))
-            {:error, reason, 1}
-        end
+        run_resolved_program(resolved)
 
       {:error, :enoent} ->
         {:error, :invalid_program_path, 1}
@@ -79,6 +60,29 @@ defmodule Definitively.CLI do
         {:error, :no_definitively_layout, 1}
 
       {:error, reason} ->
+        {:error, reason, 1}
+    end
+  end
+
+  defp run_resolved_program(resolved) do
+    Log.info("run requested",
+      program: resolved.program_path,
+      workspace: resolved.workspace_root
+    )
+
+    opts = run_opts(resolved)
+
+    case RunFile.with_log(resolved.workspace_root, resolved.program_path, opts, fn opts ->
+           Coordinator.run_until_final(resolved.program_path, opts)
+         end) do
+      :ok ->
+        :ok
+
+      {:error, :awaiting_approval} ->
+        {:error, :awaiting_approval, 2}
+
+      {:error, reason} ->
+        Log.error("workflow failed", error: inspect(reason))
         {:error, reason, 1}
     end
   end

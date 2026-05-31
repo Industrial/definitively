@@ -8,6 +8,8 @@ defmodule Definitively.Log.RunFileTest do
   @fixture Path.expand("../../fixtures/echo_ok.yml", __DIR__)
 
   setup do
+    System.put_env("DEFINITIVELY_RUN_LOG", "1")
+
     on_exit(fn ->
       System.delete_env("DEFINITIVELY_RUN_LOG")
       RunFile.clear_run_log_path!()
@@ -16,15 +18,16 @@ defmodule Definitively.Log.RunFileTest do
     :ok
   end
 
-  test "log_path uses program id and timestamp suffix" do
-    path = RunFile.log_path("/tmp/ws", @fixture)
+  test "log_path uses program id, timestamp, and run_id" do
+    run_id = RunFile.generate_run_id()
+    path = RunFile.log_path("/tmp/ws", @fixture, run_id)
 
     assert String.starts_with?(path, "/tmp/ws/.definitively/logs/")
-    assert String.ends_with?(path, "-echo_ok.log")
-    assert path =~ ~r/logs\/\d{8}-\d{6}-echo_ok\.log$/
+    assert path =~ "-echo_ok-#{run_id}.log"
+    assert path =~ ~r/logs\/\d{8}-\d{6}\.\d{6}-echo_ok-run-[a-f0-9]+\.log$/
   end
 
-  test "with_log writes definitively logger output to file" do
+  test "with_log writes one file for the entire run" do
     tmp = Path.join(System.tmp_dir!(), "orch_run_log_#{System.unique_integer()}")
     logs_dir = Path.join([tmp, ".definitively", "logs"])
     programs = Path.join([tmp, ".definitively", "programs"])
@@ -47,17 +50,19 @@ defmodule Definitively.Log.RunFileTest do
     end)
 
     assert :ok =
-             RunFile.with_log(tmp, program, fn ->
-               Coordinator.run_until_final(program, workspace_root: tmp)
+             RunFile.with_log(tmp, program, [workspace_root: tmp], fn opts ->
+               Coordinator.run_until_final(program, opts)
              end)
 
-    [log_file | _] = File.ls!(logs_dir)
+    assert [log_file] = File.ls!(logs_dir)
     content = File.read!(Path.join(logs_dir, log_file))
 
-    assert log_file =~ "-echo_ok.log"
+    assert log_file =~ "-echo_ok-run-"
     assert content =~ "run log opened"
-    assert content =~ "run started"
+    assert content =~ "executing node"
     assert content =~ "run finished"
+    assert [line] = Regex.scan(~r/run log opened/, content)
+    assert line == ["run log opened"]
   end
 
   test "with_log can be disabled via DEFINITIVELY_RUN_LOG=0" do
@@ -71,8 +76,8 @@ defmodule Definitively.Log.RunFileTest do
     on_exit(fn -> File.rm_rf(tmp) end)
 
     assert :ok =
-             RunFile.with_log(tmp, program, fn ->
-               Coordinator.run_until_final(program, workspace_root: tmp)
+             RunFile.with_log(tmp, program, [workspace_root: tmp], fn opts ->
+               Coordinator.run_until_final(program, opts)
              end)
 
     refute File.exists?(Path.join([tmp, ".definitively", "logs"]))

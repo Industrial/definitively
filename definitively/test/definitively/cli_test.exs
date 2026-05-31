@@ -12,15 +12,34 @@ defmodule Definitively.CLITest do
     assert :ok = CLI.dispatch(["run", @fixture])
   end
 
-
   test "dispatch run writes run log under definitively layout" do
+    prev_run_log = System.get_env("DEFINITIVELY_RUN_LOG")
+    prev_log_level = System.get_env("DEFINITIVELY_LOG_LEVEL")
+    System.put_env("DEFINITIVELY_RUN_LOG", "1")
+    System.put_env("DEFINITIVELY_LOG_LEVEL", "INFO")
+    Definitively.Log.configure!()
+
+    on_exit(fn ->
+      case prev_run_log do
+        nil -> System.delete_env("DEFINITIVELY_RUN_LOG")
+        v -> System.put_env("DEFINITIVELY_RUN_LOG", v)
+      end
+
+      case prev_log_level do
+        nil -> System.delete_env("DEFINITIVELY_LOG_LEVEL")
+        v -> System.put_env("DEFINITIVELY_LOG_LEVEL", v)
+      end
+
+      Definitively.Log.configure!()
+    end)
+
     with_workspace_program(@fixture, fn program, workspace ->
       assert :ok = CLI.dispatch(["run", program])
 
       logs_dir = Path.join([workspace, ".definitively", "logs"])
       assert File.dir?(logs_dir)
       [log_file | _] = File.ls!(logs_dir)
-      assert log_file =~ "-echo_ok.log"
+      assert log_file =~ "-echo_ok-run-"
 
       content = File.read!(Path.join(logs_dir, log_file))
       assert content =~ "run finished"

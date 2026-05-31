@@ -1,7 +1,7 @@
 defmodule Definitively.Log.RunFile do
   @moduledoc """
-  Mirrors definitively Logger output to `.definitively/logs/<timestamp>-<program>.log`
-  for the duration of a workflow run.
+  Mirrors definitively Logger output to a single log file for the duration of
+  a workflow run: `.definitively/logs/<timestamp>-<program>-<run_id>.log`.
   """
 
   alias Definitively.Log
@@ -9,37 +9,47 @@ defmodule Definitively.Log.RunFile do
   alias Definitively.Workspace
 
   @handler_id :definitively_run_log
+  @active_key :definitively_run_log_active
 
   @doc false
-  @spec with_log(Path.t(), Path.t(), (-> term())) :: term()
-  def with_log(workspace_root, program_path, fun) when is_function(fun, 0) do
-    if enabled?() do
-      path = log_path(workspace_root, program_path)
+  @spec with_log(Path.t(), Path.t(), keyword(), (keyword() -> term())) :: term()
+  def with_log(workspace_root, program_path, opts, fun)
+      when is_list(opts) and is_function(fun, 1) do
+    cond do
+      not enabled?() -> fun.(opts)
+      Process.get(@active_key) -> fun.(opts)
+      true -> open_and_run_log(workspace_root, program_path, opts, fun)
+    end
+  end
 
-      case open!(path) do
-        :ok ->
-          Application.put_env(:definitively, :run_log_path, path)
-          Log.info("run log opened", log_file: path)
+  defp open_and_run_log(workspace_root, program_path, opts, fun) do
+    run_id = Keyword.get(opts, :run_id) || generate_run_id()
+    opts = Keyword.put(opts, :run_id, run_id)
+    path = log_path(workspace_root, program_path, run_id)
 
-          try do
-            fun.()
-          after
-            close!()
-          end
+    case open!(path) do
+      :ok ->
+        Process.put(@active_key, path)
+        Application.put_env(:definitively, :run_log_path, path)
+        Log.info("run log opened", log_file: path, run_id: run_id)
 
-        {:error, reason} ->
-          Log.warn("run log unavailable", error: inspect(reason))
-          fun.()
-      end
-    else
-      fun.()
+        try do
+          fun.(opts)
+        after
+          close!()
+          Process.delete(@active_key)
+        end
+
+      {:error, reason} ->
+        Log.warn("run log unavailable", error: inspect(reason))
+        fun.(opts)
     end
   end
 
   @doc false
-  @spec with_log_for_program(Path.t(), keyword(), (-> term())) :: term()
-  def with_log_for_program(program_path, opts, fun) when is_function(fun, 0) do
-    with_log(workspace_for(program_path, opts), program_path, fun)
+  @spec with_log_for_program(Path.t(), keyword(), (keyword() -> term())) :: term()
+  def with_log_for_program(program_path, opts, fun) when is_function(fun, 1) do
+    with_log(workspace_for(program_path, opts), program_path, opts, fun)
   end
 
   @doc false
@@ -50,12 +60,17 @@ defmodule Definitively.Log.RunFile do
   end
 
   @doc false
-  @spec log_path(Path.t(), Path.t()) :: Path.t()
-  def log_path(workspace_root, program_path) do
+  @spec log_path(Path.t(), Path.t(), String.t()) :: Path.t()
+  def log_path(workspace_root, program_path, run_id) do
     dir = Path.join([workspace_root, ".definitively", "logs"])
-    timestamp = timestamp()
     slug = program_slug(program_path)
-    Path.join(dir, "#{timestamp}-#{slug}.log")
+    Path.join(dir, "#{timestamp()}-#{slug}-#{run_id}.log")
+  end
+
+  @doc false
+  @spec generate_run_id() :: String.t()
+  def generate_run_id do
+    "run-" <> Base.encode16(:crypto.strong_rand_bytes(6), case: :lower)
   end
 
   defp enabled? do
@@ -84,7 +99,7 @@ defmodule Definitively.Log.RunFile do
 
     config = %{
       file: String.to_charlist(path),
-      modes: [:write, :append],
+      modes: [:write],
       max_no_files: 1,
       max_no_bytes: 50_000_000
     }
@@ -141,7 +156,8 @@ defmodule Definitively.Log.RunFile do
   end
 
   defp timestamp do
-    DateTime.utc_now()
-    |> Calendar.strftime("%Y%m%d-%H%M%S")
+    %DateTime{microsecond: {us, _}} = dt = DateTime.utc_now()
+    base = Calendar.strftime(dt, "%Y%m%d-%H%M%S")
+    base <> "." <> String.pad_leading(Integer.to_string(us), 6, "0")
   end
 end

@@ -31,7 +31,7 @@ defmodule Definitively.MCP do
     opts = run_opts(params)
 
     result =
-      RunFile.with_log_for_program(path, opts, fn ->
+      RunFile.with_log_for_program(path, opts, fn opts ->
         Coordinator.run_until_final(path, opts)
       end)
 

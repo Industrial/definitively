@@ -18,6 +18,16 @@ defmodule Definitively.MCPTest do
   end
 
   test "workflow_run returns log_path" do
+    prev = System.get_env("DEFINITIVELY_RUN_LOG")
+    System.put_env("DEFINITIVELY_RUN_LOG", "1")
+
+    on_exit(fn ->
+      case prev do
+        nil -> System.delete_env("DEFINITIVELY_RUN_LOG")
+        v -> System.put_env("DEFINITIVELY_RUN_LOG", v)
+      end
+    end)
+
     with_tmp_workspace_program(@echo, fn program, workspace ->
       assert {:ok, %{ok: true, result: "finished", log_path: log_path}} =
                MCP.handle_tool("workflow_run", %{
@@ -26,7 +36,7 @@ defmodule Definitively.MCPTest do
                })
 
       assert String.starts_with?(log_path, Path.join([workspace, ".definitively", "logs"]))
-      assert log_path =~ "-echo_ok.log"
+      assert log_path =~ "-echo_ok-run-"
       assert File.regular?(log_path)
     end)
   end
