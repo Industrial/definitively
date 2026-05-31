@@ -31,11 +31,16 @@ defmodule Definitively.InitTest do
     env = Path.join([workspace, ".definitively", "env.example"])
     prompt = Path.join([workspace, ".definitively", "prompts", "example.md"])
     gitkeep = Path.join([workspace, ".definitively", "visualizations", ".gitkeep"])
+    gitignore = Path.join([workspace, ".definitively", ".gitignore"])
+    state_gitkeep = Path.join([workspace, ".definitively", "state", ".gitkeep"])
 
     assert File.regular?(program)
     assert File.regular?(env)
     assert File.regular?(prompt)
     assert File.regular?(gitkeep)
+    assert File.regular?(gitignore)
+    assert File.regular?(state_gitkeep)
+    assert File.read!(gitignore) =~ "state/*"
     assert File.read!(program) =~ "id: example"
   end
 

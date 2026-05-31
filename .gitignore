@@ -71,3 +71,7 @@ yarn-error.log*
 .maestro/tasks/local-history/
 .maestro/evidence/
 .maestro/runs/
+
+# Definitively runtime state
+.definitively/state/*
+!.definitively/state/.gitkeep
