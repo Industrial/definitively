@@ -23,7 +23,7 @@ defmodule Definitively.MCPTest do
 
     on_exit(fn ->
       case prev do
-        nil -> System.delete_env("DEFINITIVELY_RUN_LOG")
+        nil -> System.put_env("DEFINITIVELY_RUN_LOG", "0")
         v -> System.put_env("DEFINITIVELY_RUN_LOG", v)
       end
     end)
@@ -36,7 +36,7 @@ defmodule Definitively.MCPTest do
                })
 
       assert String.starts_with?(log_path, Path.join([workspace, ".definitively", "logs"]))
-      assert log_path =~ "-echo_ok-run-"
+      assert log_path =~ "-echo_ok.log"
       assert File.regular?(log_path)
     end)
   end

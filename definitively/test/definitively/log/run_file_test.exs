@@ -11,20 +11,19 @@ defmodule Definitively.Log.RunFileTest do
     System.put_env("DEFINITIVELY_RUN_LOG", "1")
 
     on_exit(fn ->
-      System.delete_env("DEFINITIVELY_RUN_LOG")
+      System.put_env("DEFINITIVELY_RUN_LOG", "0")
       RunFile.clear_run_log_path!()
     end)
 
     :ok
   end
 
-  test "log_path uses program id, timestamp, and run_id" do
-    run_id = RunFile.generate_run_id()
-    path = RunFile.log_path("/tmp/ws", @fixture, run_id)
+  test "log_path uses program basename and timestamp" do
+    path = RunFile.log_path("/tmp/ws", @fixture)
 
     assert String.starts_with?(path, "/tmp/ws/.definitively/logs/")
-    assert path =~ "-echo_ok-#{run_id}.log"
-    assert path =~ ~r/logs\/\d{8}-\d{6}\.\d{6}-echo_ok-run-[a-f0-9]+\.log$/
+    assert String.ends_with?(path, "-echo_ok.log")
+    assert path =~ ~r/logs\/\d{8}-\d{6}\.\d{6}-echo_ok\.log$/
   end
 
   test "with_log writes one file for the entire run" do
@@ -57,7 +56,7 @@ defmodule Definitively.Log.RunFileTest do
     assert [log_file] = File.ls!(logs_dir)
     content = File.read!(Path.join(logs_dir, log_file))
 
-    assert log_file =~ "-echo_ok-run-"
+    assert log_file =~ "-echo_ok.log"
     assert content =~ "run log opened"
     assert content =~ "executing node"
     assert content =~ "run finished"

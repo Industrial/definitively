@@ -1,11 +1,10 @@
 defmodule Definitively.Log.RunFile do
   @moduledoc """
   Mirrors definitively Logger output to a single log file for the duration of
-  a workflow run: `.definitively/logs/<timestamp>-<program>-<run_id>.log`.
+  a workflow run: `.definitively/logs/<timestamp>-<program>.log`.
   """
 
   alias Definitively.Log
-  alias Definitively.Spec.Loader
   alias Definitively.Workspace
 
   @handler_id :definitively_run_log
@@ -25,7 +24,7 @@ defmodule Definitively.Log.RunFile do
   defp open_and_run_log(workspace_root, program_path, opts, fun) do
     run_id = Keyword.get(opts, :run_id) || generate_run_id()
     opts = Keyword.put(opts, :run_id, run_id)
-    path = log_path(workspace_root, program_path, run_id)
+    path = log_path(workspace_root, program_path)
 
     case open!(path) do
       :ok ->
@@ -60,11 +59,11 @@ defmodule Definitively.Log.RunFile do
   end
 
   @doc false
-  @spec log_path(Path.t(), Path.t(), String.t()) :: Path.t()
-  def log_path(workspace_root, program_path, run_id) do
+  @spec log_path(Path.t(), Path.t()) :: Path.t()
+  def log_path(workspace_root, program_path) do
     dir = Path.join([workspace_root, ".definitively", "logs"])
     slug = program_slug(program_path)
-    Path.join(dir, "#{timestamp()}-#{slug}-#{run_id}.log")
+    Path.join(dir, "#{timestamp()}-#{slug}.log")
   end
 
   @doc false
@@ -143,10 +142,10 @@ defmodule Definitively.Log.RunFile do
   end
 
   defp program_slug(program_path) do
-    case Loader.load(program_path) do
-      {:ok, program} -> sanitize(program.id)
-      _ -> sanitize(Path.basename(program_path, Path.extname(program_path)))
-    end
+    program_path
+    |> Path.basename()
+    |> Path.rootname()
+    |> sanitize()
   end
 
   defp sanitize(name) when is_binary(name) do

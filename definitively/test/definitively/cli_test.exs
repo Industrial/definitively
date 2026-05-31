@@ -21,7 +21,7 @@ defmodule Definitively.CLITest do
 
     on_exit(fn ->
       case prev_run_log do
-        nil -> System.delete_env("DEFINITIVELY_RUN_LOG")
+        nil -> System.put_env("DEFINITIVELY_RUN_LOG", "0")
         v -> System.put_env("DEFINITIVELY_RUN_LOG", v)
       end
 
@@ -39,7 +39,7 @@ defmodule Definitively.CLITest do
       logs_dir = Path.join([workspace, ".definitively", "logs"])
       assert File.dir?(logs_dir)
       [log_file | _] = File.ls!(logs_dir)
-      assert log_file =~ "-echo_ok-run-"
+      assert log_file =~ "-echo_ok.log"
 
       content = File.read!(Path.join(logs_dir, log_file))
       assert content =~ "run finished"
