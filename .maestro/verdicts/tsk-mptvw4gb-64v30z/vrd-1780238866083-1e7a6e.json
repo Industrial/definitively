@@ -1,0 +1,59 @@
+{
+	"schemaVersion": 1,
+	"id": "vrd-1780238866083-1e7a6e",
+	"taskId": "tsk-mptvw4gb-64v30z",
+	"contractVersion": 1,
+	"computedAt": "2026-05-31T14:47:46.083Z",
+	"decision": "HUMAN",
+	"proposedRiskClass": "medium",
+	"effectiveRiskClass": "medium",
+	"reasons": [
+		{
+			"category": "policy",
+			"code": "auto-merge-not-allowed",
+			"message": "Auto-merge is opt-in and not enabled for risk class \"medium\" in autopilot.yaml; the task can still complete via human review (run `maestro handoff emit`, or set autoMergeAllowed.medium: true — note: enabling auto-merge is a \"loosening\" and soaks for 30 days before taking effect; run `maestro policy pending` to see in-flight changes)."
+		},
+		{
+			"category": "evidence",
+			"code": "proof-map-incomplete",
+			"message": "8 acceptance criterion/criteria lack covering evidence: dw-27ec9f (\"Programs declare `program.inputs` in YAML; `definitively run <program.yml> --plan-file <path>` populates `RunContext.inputs`; `definitively run --help <program.yml>` lists declared inputs without executing; missing required inputs and unknown flags fail before the FSM starts.\"); dw-5c127d (\"`RunState.init_plan/2` reads `inputs[\"plan_file\"]` first; `DEFINITIVELY_PLAN_FILE` is deprecated with a warning but still accepted for one release.\"); dw-9e8c2e (\"`Definitively.AgentProfile` domain (struct, Loader, Validator, Builder, OutputParser) loads `.definitively/agents/<id>.yml`, builds `{executable, argv}` from profile + node + prompt, and parses stdout via pluggable formats (`stream_json`, `json`, `text`).\"); dw-ad1ea9 (\"LLM nodes accept `agent:` (profile id); Spec.Validator requires `prompt_file` and exactly one of `agent` or `command`; `Nodes.Llm` has no hardcoded `cursor-agent` resolution or Cursor-specific stream-json parsing.\"); dw-4dd60d (\"`.definitively/programs/dev-quality-loop.yml` and `plan-mission.yml` contain zero `cursor-agent` strings, use `agent: cursor` (or `DEFINITIVELY_AGENT` default), and `plan-mission.yml` declares required `plan_file` input so runs work without `DEFINITIVELY_PLAN_FILE`.\"); dw-4751e7 (\"Repo ships `.definitively/agents/cursor.yml`; `definitively init` emits agent profile templates; `.definitively/.gitignore` ignores `state/*` with `state/.gitkeep` present.\"); dw-312b7c (\"`devenv.nix`, `.definitively/env.example`, init templates, and book chapters (`llm-nodes`, `agent-profiles`, `program-inputs`, integration docs) document profiles and CLI inputs; version bumped to 0.4.0 with migration note for removed `DEFINITIVELY_CURSOR_AGENT`.\"); dw-38ad1e (\"Tests cover CLI input parsing, program inputs schema, agent profile loader/builder/output_parser, and profile-driven LLM execution; `moon run definitively:format definitively:lint definitively:test` passes; `mix definitively run` on `dev-quality-loop.yml` succeeds with repo cursor profile and devenv env.\"). Record covering evidence with `maestro evidence record --task <id> --criterion dw-27ec9f --command \"...\" --exit 0` (criterion id matches the spec's acceptance_criteria — see `maestro spec show <slug>` or the spec frontmatter)."
+		}
+	],
+	"evidenceConsulted": [
+		"evd-1780238517709-3df06f",
+		"evd-1780238573022-46cc7f",
+		"evd-1780238743217-8918d6",
+		"evd-1780238863221-8b2745"
+	],
+	"policiesConsulted": [
+		{
+			"file": "policies/risk.yaml",
+			"version": "1"
+		},
+		{
+			"file": "policies/autopilot.yaml",
+			"version": "1"
+		},
+		{
+			"file": "policies/release.yaml",
+			"version": "1"
+		}
+	],
+	"trustVerifier": {
+		"findingsCount": 1,
+		"errors": 0,
+		"warns": 1,
+		"infos": 0,
+		"findings": [
+			{
+				"check": "empty-diff",
+				"severity": "warn",
+				"paths": [],
+				"details": "Diff between 0bb2a25512161a2844f41b0a48a37bba69e009e1 and 0bb2a25512161a2844f41b0a48a37bba69e009e1 is empty (base equals HEAD). Commit work after locking the contract — the verifier diffs from the lock-commit."
+			}
+		]
+	},
+	"subject": {
+		"tree_sha": "8c41e3c159d674d18612379f7d22cbb44408c108"
+	}
+}

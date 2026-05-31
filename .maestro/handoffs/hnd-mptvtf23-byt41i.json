@@ -1,0 +1,9 @@
+{
+	"id": "hnd-mptvtf23-byt41i",
+	"task_id": "tsk-mptvtev4-f4hqet",
+	"trigger_verb": "task:claim",
+	"created_at": "2026-05-31T14:35:28.251Z",
+	"worktree_path": "/home/tom/Code/elixir/test-haskell-web-tsk-mptvtev4-f4hqet",
+	"spec_path": "/home/tom/Code/elixir/test-haskell-web/.maestro/specs/agent-profile-refactor-054927eb.md",
+	"to_agent": "cli"
+}

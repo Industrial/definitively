@@ -1,0 +1,67 @@
+{
+	"schemaVersion": 2,
+	"id": "c-ce1979",
+	"taskId": "tsk-mptvw4gb-l1ldjz",
+	"repoRoot": ".",
+	"status": "locked",
+	"createdAt": "2026-05-31T14:58:45.472Z",
+	"lockedAt": "2026-05-31T14:58:45.472Z",
+	"intent": "Load and validate YAML agent profiles",
+	"scope": {
+		"filesExpected": ["**/*"],
+		"filesForbidden": []
+	},
+	"doneWhen": [
+		{
+			"id": "dw-3eed61",
+			"text": "Programs declare `program.inputs` in YAML; `definitively run <program.yml> --plan-file <path>` populates `RunContext.inputs`; `definitively run --help <program.yml>` lists declared inputs without executing; missing required inputs and unknown flags fail before the FSM starts.",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-fd20f9",
+			"text": "`RunState.init_plan/2` reads `inputs[\"plan_file\"]` first; `DEFINITIVELY_PLAN_FILE` is deprecated with a warning but still accepted for one release.",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-588e3f",
+			"text": "`Definitively.AgentProfile` domain (struct, Loader, Validator, Builder, OutputParser) loads `.definitively/agents/<id>.yml`, builds `{executable, argv}` from profile + node + prompt, and parses stdout via pluggable formats (`stream_json`, `json`, `text`).",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-24be83",
+			"text": "LLM nodes accept `agent:` (profile id); Spec.Validator requires `prompt_file` and exactly one of `agent` or `command`; `Nodes.Llm` has no hardcoded `cursor-agent` resolution or Cursor-specific stream-json parsing.",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-4f1dd6",
+			"text": "`.definitively/programs/dev-quality-loop.yml` and `plan-mission.yml` contain zero `cursor-agent` strings, use `agent: cursor` (or `DEFINITIVELY_AGENT` default), and `plan-mission.yml` declares required `plan_file` input so runs work without `DEFINITIVELY_PLAN_FILE`.",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-824498",
+			"text": "Repo ships `.definitively/agents/cursor.yml`; `definitively init` emits agent profile templates; `.definitively/.gitignore` ignores `state/*` with `state/.gitkeep` present.",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-135cf4",
+			"text": "`devenv.nix`, `.definitively/env.example`, init templates, and book chapters (`llm-nodes`, `agent-profiles`, `program-inputs`, integration docs) document profiles and CLI inputs; version bumped to 0.4.0 with migration note for removed `DEFINITIVELY_CURSOR_AGENT`.",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-e7a1e1",
+			"text": "Tests cover CLI input parsing, program inputs schema, agent profile loader/builder/output_parser, and profile-driven LLM execution; `moon run definitively:format definitively:lint definitively:test` passes; `mix definitively run` on `dev-quality-loop.yml` succeeds with repo cursor profile and devenv env.",
+			"kind": "manual"
+		}
+	],
+	"amendments": [],
+	"createdBy": "maestro",
+	"lockedBy": "maestro",
+	"configSnapshot": {
+		"strict": false,
+		"overlapPolicy": "annotate",
+		"rebaseFallback": "best-effort",
+		"staleReclaimContractPolicy": "inherit"
+	},
+	"missionId": "pln-mptvvf6l-gso5vp",
+	"riskClass": "medium"
+}
