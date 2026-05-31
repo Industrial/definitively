@@ -159,7 +159,6 @@ jobs:
       - name: Publish to Hex
         working-directory: orchestrator
         env:
-          MIX_ENV: prod
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: |
           if [[ -z "${HEX_API_KEY}" ]]; then
@@ -169,7 +168,7 @@ jobs:
           ../scripts/release/validate-hex-key.sh
           mix local.rebar --force
           mix local.hex --force
-          mix deps.get --only prod
+          mix deps.get
           mix hex.publish --yes
   homebrew-tap-bump:
     name: homebrew-tap-bump

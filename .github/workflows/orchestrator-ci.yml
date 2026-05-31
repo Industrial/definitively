@@ -59,4 +59,3 @@ jobs:
           mix hex.publish --dry-run --yes
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
-          MIX_ENV: prod
