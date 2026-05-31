@@ -14,6 +14,7 @@ not an encyclopedia — read it as pointers and open the linked docs as needed.
 | Risk classes + policy | `docs/risk-class-derivation.md`, `docs/policy-format.md` |
 | Schedule recipes (external triggers only) | `docs/schedule-recipes.md` |
 | Architecture lints | `docs/architecture-lints.md` |
+| Definitively × Maestro orchestration | `.maestro/docs/DEFINITIVELY_INTEGRATION.md` |
 
 ## Layout
 

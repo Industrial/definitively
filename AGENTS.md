@@ -6,19 +6,38 @@ feature boundaries.
 
 ## Build / test / verify
 
-Fill in the commands an agent should run before claiming a task done:
+Canonical gates are **definitively FSM programs** under `.definitively/programs/`. Run from repo root after `direnv allow` (or devenv shell) so `definitively` is on PATH.
 
 ```bash
-# build:   <how to build>
-# test:    <how to run tests>
-# lint:    <if any>
-# format:  <if any>
+# fast gate (pre-commit parity): format → lint → doctor
+.maestro/bootstrap/validation/verify-fast.sh
+# or: definitively run "$PWD/.definitively/programs/pre-commit-gate.yml"
+
+# full gate (pre-push / maestro verify parity): … → test → coverage → docs → build → book
+.maestro/bootstrap/validation/verify-gate.sh
+# or: definitively run "$PWD/.definitively/programs/pre-push-gate.yml"
+
+# AI-assisted fix loop (manual — includes LLM nodes + commit)
+definitively run "$PWD/.definitively/programs/dev-quality-loop.yml"
+```
+
+Individual moon tasks (when debugging a single gate):
+
+```bash
+moon run definitively:format definitively:lint definitively:test definitively:build
+```
+
+Record evidence for maestro after a gate passes:
+
+```bash
+maestro evidence record --task <id> --command ".maestro/bootstrap/validation/verify-gate.sh" --exit 0
 ```
 
 ## Layout
 
-- `src/` — application source
-- `tests/` — automated tests
+- `definitively/` — Elixir definitively engine (Mix app)
+- `.definitively/` — repo-local YAML programs, prompts, node templates
+- `book/` — mdBook documentation
 - `.maestro/` — harness state (read `.maestro/AGENTS.md` first)
 
 ## Conventions

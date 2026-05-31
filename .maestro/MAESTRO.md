@@ -38,3 +38,23 @@ maestro mission decompose <pln-id> --file -           # heavy-mode: batch-create
 maestro plan check --task <id> --plan-file <path>     # plan-time consistency check
 maestro doctor                                        # scaffold + init.sh + verdict freshness
 ```
+
+## Verification gates (definitively)
+
+Product verification runs through definitively YAML programs — not ad-hoc moon invocations. Maestro `task verify` still runs architecture-lint; the **product gate** is definitively.
+
+| When | Script / program |
+|------|------------------|
+| During implementation (cheap) | `.maestro/bootstrap/validation/verify-fast.sh` → `pre-commit-gate.yml` |
+| Before `maestro task verify` / ship | `.maestro/bootstrap/validation/verify-gate.sh` → `pre-push-gate.yml` |
+| Autonomous fix + commit (manual) | `definitively run .definitively/programs/dev-quality-loop.yml` |
+
+Pre-ship ritual (per `maestro-verify`):
+
+1. Run full gate and record evidence: `maestro evidence record --task <id> --command ".maestro/bootstrap/validation/verify-gate.sh" --exit 0`
+2. `maestro task verify <id>` — architecture-lint corpus
+3. `maestro verdict request --task <id>`
+4. `maestro task ship <id>`
+
+See `.maestro/docs/DEFINITIVELY_INTEGRATION.md` for Cursor plan → mission → definitively wave orchestration.
+
