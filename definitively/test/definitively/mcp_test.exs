@@ -17,6 +17,20 @@ defmodule Definitively.MCPTest do
              MCP.handle_tool("workflow_run", %{"program_path" => @echo})
   end
 
+  test "workflow_run returns log_path" do
+    with_tmp_workspace_program(@echo, fn program, workspace ->
+      assert {:ok, %{ok: true, result: "finished", log_path: log_path}} =
+               MCP.handle_tool("workflow_run", %{
+                 "program_path" => program,
+                 "workspace_root" => workspace
+               })
+
+      assert String.starts_with?(log_path, Path.join([workspace, ".definitively", "logs"]))
+      assert log_path =~ "-echo_ok.log"
+      assert File.regular?(log_path)
+    end)
+  end
+
   test "workflow_run auto-approves approval programs" do
     assert {:ok, %{ok: true, result: "finished"}} =
              MCP.handle_tool("workflow_run", %{"program_path" => @approval})
@@ -75,6 +89,16 @@ defmodule Definitively.MCPTest do
                "program_path" => @echo,
                "workspace_root" => File.cwd!()
              })
+  end
+
+  defp with_tmp_workspace_program(fixture, fun) do
+    tmp = Path.join(System.tmp_dir!(), "orch_mcp_ws_#{System.unique_integer()}")
+    programs = Path.join([tmp, ".definitively", "programs"])
+    File.mkdir_p!(programs)
+    program = Path.join(programs, Path.basename(fixture))
+    File.cp!(fixture, program)
+    on_exit(fn -> File.rm_rf(tmp) end)
+    fun.(program, tmp)
   end
 
   test "workflow_run start_failed for missing file" do

@@ -12,6 +12,21 @@ defmodule Definitively.CLITest do
     assert :ok = CLI.dispatch(["run", @fixture])
   end
 
+
+  test "dispatch run writes run log under definitively layout" do
+    with_workspace_program(@fixture, fn program, workspace ->
+      assert :ok = CLI.dispatch(["run", program])
+
+      logs_dir = Path.join([workspace, ".definitively", "logs"])
+      assert File.dir?(logs_dir)
+      [log_file | _] = File.ls!(logs_dir)
+      assert log_file =~ "-echo_ok.log"
+
+      content = File.read!(Path.join(logs_dir, log_file))
+      assert content =~ "run finished"
+    end)
+  end
+
   test "dispatch run auto-approves approval_state" do
     assert :ok = CLI.dispatch(["run", @approval])
   end

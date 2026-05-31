@@ -22,7 +22,8 @@ config :logger, :console,
     :duration_ms,
     :timed_out,
     :command,
-    :error
+    :error,
+    :log_file
   ]
 
 import_config "#{config_env()}.exs"

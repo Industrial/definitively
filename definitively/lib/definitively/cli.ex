@@ -3,6 +3,7 @@ defmodule Definitively.CLI do
 
   alias Definitively.Init
   alias Definitively.Log
+  alias Definitively.Log.RunFile
   alias Definitively.Run.Coordinator
   alias Definitively.Visualize
   alias Definitively.Workspace
@@ -16,6 +17,7 @@ defmodule Definitively.CLI do
     case dispatch(argv) do
       :ok ->
         print_success(argv)
+        RunFile.clear_run_log_path!()
         :ok
 
       :usage ->
@@ -55,7 +57,20 @@ defmodule Definitively.CLI do
         )
 
         opts = run_opts(resolved)
-        start_and_resume(resolved.program_path, opts)
+
+        case RunFile.with_log(resolved.workspace_root, resolved.program_path, fn ->
+               Coordinator.run_until_final(resolved.program_path, opts)
+             end) do
+          :ok ->
+            :ok
+
+          {:error, :awaiting_approval} ->
+            {:error, :awaiting_approval, 2}
+
+          {:error, reason} ->
+            Log.error("workflow failed", error: inspect(reason))
+            {:error, reason, 1}
+        end
 
       {:error, :enoent} ->
         {:error, :invalid_program_path, 1}
@@ -86,27 +101,6 @@ defmodule Definitively.CLI do
       {:ok, {:files, paths}} ->
         Enum.each(paths, &IO.puts/1)
         :ok
-
-      {:error, reason} ->
-        {:error, reason, 1}
-    end
-  end
-
-  defp start_and_resume(program_path, opts) do
-    case Coordinator.start(program_path, opts) do
-      {:ok, run_id} ->
-        case Coordinator.resume(run_id, opts) do
-          :ok ->
-            Log.info("workflow completed", run_id: run_id)
-            :ok
-
-          {:error, :awaiting_approval} ->
-            {:error, :awaiting_approval, 2}
-
-          {:error, reason} ->
-            Log.error("workflow failed", run_id: run_id, error: inspect(reason))
-            {:error, reason, 1}
-        end
 
       {:error, reason} ->
         {:error, reason, 1}
@@ -158,7 +152,12 @@ defmodule Definitively.CLI do
     end
   end
 
-  defp print_success(["run" | _]), do: IO.puts("workflow finished")
+  defp print_success(["run" | _]) do
+    case Application.get_env(:definitively, :run_log_path) do
+      nil -> IO.puts("workflow finished")
+      path -> IO.puts("workflow finished — log: #{path}")
+    end
+  end
   defp print_success(["visualize" | _]), do: :ok
   defp print_success(["init" | _]), do: :ok
   defp print_success(_), do: :ok
