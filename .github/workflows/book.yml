@@ -31,9 +31,26 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: book/book
-  deploy:
+  check-pages:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" --silent 2>/dev/null; then
+            echo "enabled=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice title=GitHub Pages not configured::Enable once at https://github.com/${GITHUB_REPOSITORY}/settings/pages (Build and deployment source: GitHub Actions), then re-run the deploy job."
+          fi
+  deploy:
+    needs: [build, check-pages]
+    if: needs.check-pages.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
