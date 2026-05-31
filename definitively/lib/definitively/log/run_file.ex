@@ -94,7 +94,7 @@ defmodule Definitively.Log.RunFile do
   defp open!(path) do
     File.mkdir_p!(Path.dirname(path))
 
-    formatter = {:logger_formatter, %{single_line: true}}
+    formatter = console_formatter()
 
     config = %{
       file: String.to_charlist(path),
@@ -118,6 +118,22 @@ defmodule Definitively.Log.RunFile do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp console_formatter do
+    console = Application.get_env(:logger, :console, [])
+
+    Logger.Formatter.new(
+      format: Keyword.get(console, :format, "$time $metadata[$level] $message\n"),
+      metadata: Keyword.get(console, :metadata, default_metadata())
+    )
+  end
+
+  defp default_metadata do
+    ~w(
+      definitively_level run_id program_id workspace path state from_state to_state
+      label node_id kind outcome status exit_code duration_ms timed_out command error log_file
+    )a
   end
 
   defp close! do
