@@ -7,6 +7,7 @@ src = "src"
 
 [output.html]
 git-repository-url = "https://github.com/Industrial/definitively"
+site-url = "/definitively/"
 edit-url-template = "https://github.com/Industrial/definitively/edit/main/book/{path}"
 default-theme = "rust"
 preferred-dark-theme = "navy"

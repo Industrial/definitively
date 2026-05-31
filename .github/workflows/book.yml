@@ -9,6 +9,7 @@ on:
     paths:
       - book/**
       - .github/workflows/book.yml
+  workflow_dispatch:
 permissions:
   contents: read
   pages: write
