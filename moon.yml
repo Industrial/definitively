@@ -25,3 +25,12 @@ tasks:
     options:
       cache: false
       outputStyle: buffer-only-failure
+  book-build:
+    description: 'Build mdBook user guide'
+    command: 'mdbook'
+    args: ['build', 'book']
+    inputs:
+      - 'book/**'
+    options:
+      cache: false
+      outputStyle: buffer-only-failure

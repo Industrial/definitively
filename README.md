@@ -1,7 +1,10 @@
 # definitively
 
-FSM-based workflow definitively for CLI commands, LLM sessions, and git steps. Programs are YAML state machines backed by OTP `:gen_statem`; nodes run shell commands or LLM agents and return typed outcomes.
+FSM-based workflow runner for CLI commands, LLM sessions, and git steps. Programs are YAML state machines backed by OTP `:gen_statem`; nodes run shell commands or LLM agents and return typed outcomes.
 
+**[Read the Book](https://industrial.github.io/definitively/)** — install, first program, YAML reference, patterns, and CLI.
+
+[![Book](https://img.shields.io/badge/docs-book-blue)](https://industrial.github.io/definitively/)
 [![Definitively CI](https://github.com/Industrial/definitively/actions/workflows/definitively-ci.yml/badge.svg)](https://github.com/Industrial/definitively/actions/workflows/definitively-ci.yml)
 [![Release](https://github.com/Industrial/definitively/actions/workflows/release-definitively.yml/badge.svg)](https://github.com/Industrial/definitively/actions/workflows/release-definitively.yml)
 [![codecov](https://codecov.io/gh/Industrial/definitively/branch/main/graph/badge.svg)](https://codecov.io/gh/Industrial/definitively)
@@ -10,17 +13,24 @@ FSM-based workflow definitively for CLI commands, LLM sessions, and git steps. P
 [![Elixir](https://img.shields.io/badge/elixir-~%3E%201.18-purple.svg)](https://elixir-lang.org)
 [![GitHub Stars](https://img.shields.io/github/stars/Industrial/definitively?style=social)](https://github.com/Industrial/definitively/stargazers)
 
-**CLI usage:** [definitively/README.md](definitively/README.md)
-
-**All install channels:** [docs/definitively-distribution.md](docs/definitively-distribution.md)
-
 ## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Industrial/definitively/main/install.sh | bash
 ```
 
-Pin a release: append `bash -s -- --version definitively-v0.1.0`. Installs to `~/.local/bin` by default (`PREFIX` / `BINDIR` override). Requires a published release for your platform (`linux-x86_64` or `darwin-arm64`).
+Pin a release: `bash -s -- --version definitively-v0.2.0`. See the [Install channels](https://industrial.github.io/definitively/install/index.html) chapter for Hex, Nix, Homebrew, and devenv.
+
+## Learn
+
+| Topic | Book chapter |
+|-------|----------------|
+| First run | [Quick start](https://industrial.github.io/definitively/quick-start.html) |
+| Workspace setup | [`.definitively/` layout](https://industrial.github.io/definitively/workspace/layout.html) |
+| Write programs | [Authoring programs](https://industrial.github.io/definitively/authoring/structure.html) |
+| Quality loop example | [Dev quality loop](https://industrial.github.io/definitively/patterns/dev-quality-loop.html) |
+| CLI reference | [Commands and flags](https://industrial.github.io/definitively/cli/reference.html) |
+| Contribute | [Developing definitively](https://industrial.github.io/definitively/appendices/developing.html) |
 
 ## Develop
 
@@ -30,54 +40,14 @@ cd definitively
 devenv shell
 ```
 
-`devenv shell` installs git hooks (prek), syncs moon, and puts Elixir, the definitively escript, and graphviz on PATH. Set `DEFINITIVELY_FROM_SOURCE=1` before entering the shell to build the CLI from `definitively/` instead of the flake package.
-
-Run the full quality pipeline locally:
+`devenv shell` installs git hooks, syncs moon, and puts Elixir, definitively, and graphviz on PATH. Set `DEFINITIVELY_FROM_SOURCE=1` to build the CLI from source on shell enter.
 
 ```bash
 moon run definitively:build
+mdbook serve book    # preview the book locally
 ```
 
-Or step through tasks: `project-template:format`, then `definitively:lint`, `:doctor`, `:test`, `:coverage`, `:docs`, `:build`.
-
-## Git hooks
-
-Hooks are defined in `.pre-commit-config.yaml` and installed on `devenv shell`.
-
-| Hook | Runs |
-|------|------|
-| **pre-commit** | `moon run :format :lint :doctor :test :coverage :docs :build` |
-| **pre-push** | same as pre-commit |
-| **commit-msg** | conventional commits (`scripts/commit-msg.sh`) |
-
-`:format` is workspace treefmt; the rest are definitively Mix tasks (credo, doctor, tests, coverage ≥ 90%, ExDoc, compile).
-
-## CI
-
-GitHub Actions runs on changes under `definitively/`:
-
-- **test** — `mix test --cover` → Codecov (`definitively/cover/lcov.info`, `CODECOV_TOKEN`)
-- **hex-dry-run** — `mix hex.build` and `mix hex.publish --dry-run` when `HEX_API_KEY` is set
-
-Releases (tag `definitively-v*`) publish to GitHub Releases, Hex, and Homebrew tap via `release-definitively.yml`. See [docs/definitively-distribution.md](docs/definitively-distribution.md#release-maintainers).
-
-There is no separate Rust or devenv CI job; local hooks are the gate for formatting and the definitively build chain.
-
-## Moon tasks
-
-| Target | What it does |
-|--------|----------------|
-| `project-template:format` | treefmt over tracked files (Rust, Nix, shell, JS/TS, YAML, TOML) |
-| `definitively:lint` | credo `--strict` (depends on format) |
-| `definitively:doctor` | doc + `@spec` coverage |
-| `definitively:test` | `mix test` |
-| `definitively:coverage` | `mix test --cover` (≥ 90% threshold) |
-| `definitively:docs` | `mix docs --warnings-as-errors` |
-| `definitively:build` | `mix compile --warnings-as-errors` |
-
-## Submodules
-
-`.cursor/agency-agents` and `.cursor/microsoft-rust-training` are git submodules. Clone with `--recurse-submodules`, or run `git submodule update --init --recursive` after the fact.
+Contributor details: [Developing definitively](https://industrial.github.io/definitively/appendices/developing.html) in the book.
 
 ## Coverage
 

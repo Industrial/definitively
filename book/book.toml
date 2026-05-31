@@ -1,0 +1,12 @@
+[book]
+title = "Definitively"
+authors = ["Industrial"]
+description = "User guide for the definitively FSM workflow runner"
+language = "en"
+src = "src"
+
+[output.html]
+git-repository-url = "https://github.com/Industrial/definitively"
+edit-url-template = "https://github.com/Industrial/definitively/edit/main/book/{path}"
+default-theme = "rust"
+preferred-dark-theme = "navy"

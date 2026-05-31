@@ -194,6 +194,7 @@ in {
     rustfmt
     taplo
     treefmt
+    mdbook
     vulnix
     yamlfmt
 
