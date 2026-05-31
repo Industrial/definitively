@@ -1,0 +1,64 @@
+# Copy-paste maestro node fragments into your program's `nodes:` section.
+init_run:
+  kind: maestro
+  action: init_run
+  outcome:
+    success:
+      - exit_code: 0
+spec_validate:
+  kind: maestro
+  action: spec_validate
+  outcome:
+    success:
+      - exit_code: 0
+    failure:
+      - exit_code: {neq: 0}
+mission_from_spec:
+  kind: maestro
+  action: mission_from_spec
+  outcome:
+    success:
+      - exit_code: 0
+mission_decompose:
+  kind: maestro
+  action: mission_decompose
+  outcome:
+    success:
+      - exit_code: 0
+claim_next_draft:
+  kind: maestro
+  action: task_claim_next
+  outcome:
+    partial:
+      - signal: no_tasks
+    success:
+      - signal: has_tasks
+    failure:
+      - exit_code: {neq: 0}
+record_gate_evidence:
+  kind: maestro
+  action: evidence_record
+  options:
+    command: ".maestro/bootstrap/validation/verify-gate.sh"
+    exit: 0
+  outcome:
+    success:
+      - exit_code: 0
+verify_task:
+  kind: maestro
+  action: task_verify
+  outcome:
+    success:
+      - exit_code: 0
+request_verdict:
+  kind: maestro
+  action: verdict_request
+  outcome:
+    success:
+      - exit_code: 0
+ship_task:
+  kind: maestro
+  action: task_ship
+  outcome:
+    success:
+      - exit_code: 0

@@ -36,7 +36,7 @@ definitively run "$PWD/.definitively/programs/dev-quality-loop.yml"
 
 Workspace root is inferred from the program path (parent of `.definitively/`). Optional override: `DEFINITIVELY_WORKSPACE`.
 
-LLM fix steps require `cursor-agent` on PATH (see [env.example](env.example)).
+LLM fix steps use `DEFINITIVELY_CURSOR_AGENT` (set in devenv) (see [env.example](env.example)).
 
 ### Develop the engine
 
@@ -58,6 +58,24 @@ Installed by devenv/prek — **no LLM**, fail fast on first broken gate.
 | [programs/pre-push-gate.yml](programs/pre-push-gate.yml) | pre-push | … → test → coverage → docs → build → book-build |
 
 For AI-assisted repair, run [dev-quality-loop.yml](programs/dev-quality-loop.yml) manually — do not wire it into hooks.
+
+
+## Plan → Maestro mission (autonomous)
+
+Program: [programs/plan-mission.yml](programs/plan-mission.yml)
+
+Drives a full Maestro heavy-mode mission from any plan markdown (including Cursor `.plan.md` files). **No Cursor-specific step** — pass the plan path via env.
+
+```bash
+export DEFINITIVELY_PLAN_FILE="$PWD/.cursor/plans/your.plan.md"
+definitively run "$PWD/.definitively/programs/plan-mission.yml"
+```
+
+Flow: init → LLM spec → validate → mission → LLM decompose → wave loop (claim → implement → gate → fix → evidence → verify → verdict → ship).
+
+Uses structured `maestro` nodes (see `definitively/priv/templates/definitively/nodes/maestro.yml`). Run state: `.definitively/state/maestro-run.json`.
+
+See [.maestro/docs/DEFINITIVELY_INTEGRATION.md](../.maestro/docs/DEFINITIVELY_INTEGRATION.md).
 
 See the [Hook integration](https://industrial.github.io/definitively/patterns/hook-integration.html) book chapter.
 

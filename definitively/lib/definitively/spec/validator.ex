@@ -148,7 +148,7 @@ defmodule Definitively.Spec.Validator do
   end
 
   defp check_node_kind_fields(id, %NodeDefinition{kind: kind, action: nil})
-       when kind in [:git, :gh] do
+       when kind in [:git, :gh, :maestro] do
     {:error, Error.new(:missing_action, "#{kind} node #{inspect(id)} requires action")}
   end
 
@@ -181,6 +181,18 @@ defmodule Definitively.Spec.Validator do
        Error.new(
          :invalid_gh_action,
          "gh node #{inspect(id)} has unknown action #{inspect(action)}"
+       )}
+    end
+  end
+
+  defp check_git_gh_action(id, %NodeDefinition{kind: :maestro, action: action}) do
+    if action in NodeDefinition.maestro_actions() do
+      :ok
+    else
+      {:error,
+       Error.new(
+         :invalid_maestro_action,
+         "maestro node #{inspect(id)} has unknown action #{inspect(action)}"
        )}
     end
   end

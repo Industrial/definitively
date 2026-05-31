@@ -162,8 +162,9 @@ When all child tasks are `shipped`, mission is complete. Optional final program:
 | dev-quality-loop (gates + LLM fix) | ✓ |
 | Maestro verify scripts | ✓ `.maestro/bootstrap/validation/verify-*.sh` |
 | git / gh node kinds | ✓ v0.3.0 |
-| Wave program template per mission | planned |
-| `maestro` CLI node kind (claim/verify/ship) | planned |
+| `plan-mission.yml` end-to-end program | ✓ |
+| `maestro` node kind (init, spec, mission, claim, verify, ship) | ✓ v0.4.0 |
+| Wave program template per mission | superseded by `plan-mission.yml` |
 | `.plan.md` → task batch JSON converter | planned |
 | Mission-level meta-FSM (orchestrates all waves) | future |
 

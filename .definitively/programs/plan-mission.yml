@@ -1,0 +1,220 @@
+program:
+  id: plan_mission
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: init
+  init:
+    type: active
+    node: maestro_init
+    on:
+      success: llm_spec
+      failure: failed
+  llm_spec:
+    type: active
+    node: llm_spec_from_plan
+    on:
+      success: spec_validate
+      failure: llm_spec
+      partial: llm_spec
+      retry: llm_spec
+  spec_validate:
+    type: active
+    node: maestro_spec_validate
+    on:
+      success: mission_from_spec
+      failure: llm_spec
+  mission_from_spec:
+    type: active
+    node: maestro_mission_from_spec
+    on:
+      success: llm_decompose
+      failure: failed
+  llm_decompose:
+    type: active
+    node: llm_decompose_from_plan
+    on:
+      success: mission_decompose
+      failure: llm_decompose
+      partial: llm_decompose
+      retry: llm_decompose
+  mission_decompose:
+    type: active
+    node: maestro_mission_decompose
+    on:
+      success: claim_next
+      failure: llm_decompose
+  claim_next:
+    type: active
+    node: maestro_claim_next
+    on:
+      success: implement_wave
+      partial: done
+      failure: failed
+  implement_wave:
+    type: active
+    node: llm_implement_wave
+    on:
+      success: gate
+      failure: implement_wave
+      partial: implement_wave
+      retry: implement_wave
+  gate:
+    type: active
+    node: verify_gate
+    on:
+      success: llm_evidence
+      failure: fix_wave
+      partial: fix_wave
+  fix_wave:
+    type: active
+    node: llm_fix_wave
+    on:
+      success: gate
+      failure: fix_wave
+      retry: fix_wave
+  llm_evidence:
+    type: active
+    node: llm_evidence_wave
+    on:
+      success: task_verify
+      failure: llm_evidence
+      partial: llm_evidence
+      retry: llm_evidence
+  task_verify:
+    type: active
+    node: maestro_task_verify
+    on:
+      success: verdict
+      failure: fix_wave
+  verdict:
+    type: active
+    node: maestro_verdict
+    on:
+      success: ship
+      failure: fix_wave
+  ship:
+    type: active
+    node: maestro_ship
+    on:
+      success: claim_next
+      failure: failed
+  done:
+    type: final
+  failed:
+    type: final
+nodes:
+  maestro_init:
+    kind: maestro
+    action: init_run
+    outcome: &maestro_ok
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  maestro_spec_validate:
+    kind: maestro
+    action: spec_validate
+    outcome: *maestro_ok
+  maestro_mission_from_spec:
+    kind: maestro
+    action: mission_from_spec
+    outcome: *maestro_ok
+  maestro_mission_decompose:
+    kind: maestro
+    action: mission_decompose
+    outcome: *maestro_ok
+  maestro_claim_next:
+    kind: maestro
+    action: task_claim_next
+    timeout_ms: 300000
+    outcome:
+      partial:
+        - signal: no_tasks
+      success:
+        - signal: has_tasks
+      failure:
+        - exit_code: {neq: 0}
+  maestro_task_verify:
+    kind: maestro
+    action: task_verify
+    timeout_ms: 600000
+    outcome: *maestro_ok
+  maestro_verdict:
+    kind: maestro
+    action: verdict_request
+    timeout_ms: 600000
+    outcome: *maestro_ok
+  maestro_ship:
+    kind: maestro
+    action: task_ship
+    outcome: *maestro_ok
+  verify_gate:
+    kind: cli
+    command: [".maestro/bootstrap/validation/verify-gate.sh"]
+    timeout_ms: 900000
+    outcome: &gate_outcome
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+      partial:
+        - exit_code: {neq: 0}
+  llm_spec_from_plan:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/maestro-spec-from-plan.md
+    timeout_ms: 3600000
+    command: &cursor_agent
+      - cursor-agent
+      - agent
+      - --force
+      - --approve-mcps
+      - --model
+      - auto
+      - --workspace
+      - "."
+      - --trust
+      - --print
+      - --output-format
+      - stream-json
+      - --stream-partial-output
+      - --
+    outcome: &llm_outcome
+      success:
+        - jq: '.status == "ok"'
+        - signal: fix_complete
+      failure:
+        - timeout: true
+        - signal: refused
+  llm_decompose_from_plan:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/maestro-decompose-from-plan.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_implement_wave:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/maestro-implement-wave.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_fix_wave:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/maestro-fix-wave.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome
+  llm_evidence_wave:
+    kind: llm
+    model: auto
+    prompt_file: .definitively/prompts/maestro-evidence-wave.md
+    timeout_ms: 3600000
+    command: *cursor_agent
+    outcome: *llm_outcome

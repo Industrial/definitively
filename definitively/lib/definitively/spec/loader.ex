@@ -197,7 +197,7 @@ defmodule Definitively.Spec.Loader do
   defp parse_node(id, _, path),
     do: {:error, Error.new(:invalid_node, "node #{id} must be a map", path)}
 
-  defp parse_node_kind(kind, _path, _id) when kind in ["cli", "llm", "git", "gh"],
+  defp parse_node_kind(kind, _path, _id) when kind in ["cli", "llm", "git", "gh", "maestro"],
     do: {:ok, String.to_atom(kind)}
 
   defp parse_node_kind(_kind, path, id),
@@ -205,7 +205,7 @@ defmodule Definitively.Spec.Loader do
       {:error,
        Error.new(
          :invalid_node_kind,
-         "nodes.#{id}.kind must be cli, llm, git, or gh",
+         "nodes.#{id}.kind must be cli, llm, git, gh, or maestro",
          path
        )}
 

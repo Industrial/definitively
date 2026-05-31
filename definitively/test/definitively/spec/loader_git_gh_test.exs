@@ -6,6 +6,7 @@ defmodule Definitively.Spec.LoaderGitGhTest do
   @fixture Path.expand("../../fixtures/git_gh_ship.yml", __DIR__)
   @pre_commit_fixture Path.expand("../../fixtures/pre_commit_gate.yml", __DIR__)
   @pre_push_fixture Path.expand("../../fixtures/pre_push_gate.yml", __DIR__)
+  @plan_mission_fixture Path.expand("../../fixtures/plan_mission.yml", __DIR__)
 
   test "loads git_gh_ship fixture" do
     assert {:ok, program} = Loader.load(@fixture)
@@ -15,6 +16,13 @@ defmodule Definitively.Spec.LoaderGitGhTest do
     assert program.nodes.repo_status.action == :status
     assert program.nodes.watch_ci.kind == :gh
     assert program.nodes.watch_ci.action == :run_watch
+  end
+
+  test "loads plan_mission fixture with maestro nodes" do
+    assert {:ok, program} = Loader.load(@plan_mission_fixture)
+    assert program.id == "plan_mission"
+    assert program.nodes.maestro_init.kind == :maestro
+    assert program.nodes.maestro_init.action == :init_run
   end
 
   test "loads pre_commit_gate fixture" do
@@ -56,6 +64,38 @@ defmodule Definitively.Spec.LoaderGitGhTest do
 
     try do
       assert {:error, %{reason: :invalid_git_action}} = Loader.load(path)
+    after
+      File.rm!(path)
+    end
+  end
+
+  test "rejects unknown maestro action" do
+    yaml = """
+    program:
+      id: bad
+      version: 1
+      initial: idle
+    states:
+      idle:
+        type: passive
+        on:
+          start: done
+      done:
+        type: final
+    nodes:
+      bad_maestro:
+        kind: maestro
+        action: fly
+        outcome:
+          success:
+            - exit_code: 0
+    """
+
+    path = Path.join(System.tmp_dir!(), "bad-maestro-#{System.unique_integer()}.yml")
+    File.write!(path, yaml)
+
+    try do
+      assert {:error, %{reason: :invalid_maestro_action}} = Loader.load(path)
     after
       File.rm!(path)
     end

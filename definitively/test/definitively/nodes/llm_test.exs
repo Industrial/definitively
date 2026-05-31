@@ -49,6 +49,15 @@ defmodule Definitively.Nodes.LlmTest do
     assert stdout =~ "Fix the issue"
   end
 
+  test "cursor-agent resolves to DEFINITIVELY_CURSOR_AGENT or nix default" do
+    assert Llm.resolve_executable("cursor-agent") == "/run/current-system/sw/bin/cursor-agent"
+
+    System.put_env("DEFINITIVELY_CURSOR_AGENT", "/custom/cursor-agent")
+    on_exit(fn -> System.delete_env("DEFINITIVELY_CURSOR_AGENT") end)
+    assert Llm.resolve_executable("cursor-agent") == "/custom/cursor-agent"
+    assert Llm.resolve_executable("/other/bin") == "/other/bin"
+  end
+
   test "rejects non-llm kind" do
     node = %NodeDefinition{kind: :cli, command: "true"}
 

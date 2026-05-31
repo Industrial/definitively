@@ -1,0 +1,23 @@
+program:
+  id: plan_mission
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: init
+  init:
+    type: active
+    node: maestro_init
+    on:
+      success: done
+  done:
+    type: final
+nodes:
+  maestro_init:
+    kind: maestro
+    action: init_run
+    outcome:
+      success:
+        - exit_code: 0

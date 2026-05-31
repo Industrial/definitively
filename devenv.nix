@@ -227,6 +227,7 @@ in {
         export MOON_TOOLCHAIN_FORCE_GLOBALS=rust
         export MOON_CONCURRENCY=1
         export DEFINITIVELY_WORKSPACE="$DEVENV_ROOT"
+        export DEFINITIVELY_CURSOR_AGENT="/run/current-system/sw/bin/cursor-agent"
         definitively run "$DEVENV_ROOT/.definitively/programs/pre-commit-gate.yml"
       '';
     };

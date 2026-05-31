@@ -13,6 +13,9 @@ defmodule Definitively.Nodes.Llm do
   alias Definitively.Nodes.StreamCmd
   alias Definitively.Workflow.RunContext
 
+  @cursor_agent_bin "cursor-agent"
+  @cursor_agent_default "/run/current-system/sw/bin/cursor-agent"
+
   @impl Definitively.Nodes.Executor
   @spec execute(NodeDefinition.t(), RunContext.t()) ::
           {:ok, RawResult.t()} | {:error, term()}
@@ -140,6 +143,15 @@ defmodule Definitively.Nodes.Llm do
   defp normalize_signals(signals) when is_map(signals), do: signals
   defp normalize_signals(_), do: %{}
 
+  @doc false
+  @spec resolve_executable(String.t()) :: String.t()
+  def resolve_executable(@cursor_agent_bin), do: cursor_agent_executable()
+  def resolve_executable(executable) when is_binary(executable), do: executable
+
+  defp cursor_agent_executable do
+    System.get_env("DEFINITIVELY_CURSOR_AGENT") || @cursor_agent_default
+  end
+
   defp command_argv(%NodeDefinition{command: cmd}, prompt) when is_list(cmd) and cmd != [] do
     case Enum.split(cmd, -1) do
       {prefix, ["--"]} -> split_executable(prefix ++ ["--", prompt])
@@ -149,7 +161,7 @@ defmodule Definitively.Nodes.Llm do
 
   defp command_argv(_node, _prompt), do: split_executable(llm_command())
 
-  defp split_executable([executable | args]), do: {executable, args}
+  defp split_executable([executable | args]), do: {resolve_executable(executable), args}
   defp split_executable(_), do: {"", []}
 
   defp llm_command do

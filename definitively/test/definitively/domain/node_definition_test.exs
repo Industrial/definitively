@@ -6,6 +6,6 @@ defmodule Definitively.Domain.NodeDefinitionTest do
   doctest NodeDefinition
 
   test "kinds/0 returns cli and llm" do
-    assert NodeDefinition.kinds() == [:cli, :llm, :git, :gh]
+    assert NodeDefinition.kinds() == [:cli, :llm, :git, :gh, :maestro]
   end
 end
