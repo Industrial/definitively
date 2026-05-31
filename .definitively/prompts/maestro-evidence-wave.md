@@ -1,8 +1,8 @@
 Record Maestro verification evidence for the current wave.
 
-## Inputs
+## Inputs (read-only)
 
-- Task id: `.definitively/state/maestro-run.json` → `task_id`
+Read `task_id` from `.definitively/state/maestro-run.json`. **Do not write or overwrite this file.**
 
 ## Task
 

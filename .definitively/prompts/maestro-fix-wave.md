@@ -1,9 +1,10 @@
 The pre-push quality gate failed after implementing a Maestro wave.
 
-## Inputs
+## Inputs (read-only)
 
-- Run state: `.definitively/state/maestro-run.json`
-- Re-run `.maestro/bootstrap/validation/verify-gate.sh` to see failures.
+Read `.definitively/state/maestro-run.json` for context only. **Do not write or overwrite this file.**
+
+Re-run `.maestro/bootstrap/validation/verify-gate.sh` to see failures.
 
 ## Task
 

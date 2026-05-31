@@ -1,0 +1,11 @@
+digraph G {
+
+  v0 [label="run\n(active)\n→ echo",shape="box",style="filled",fillcolor="lightyellow",fontname="Helvetica"]
+  v1 [label="idle\n(passive)",shape="ellipse",style="filled",fillcolor="lightblue",fontname="Helvetica",penwidth="3",color="darkgreen"]
+  v2 [label="done\n(final)",shape="doublecircle",style="filled",fillcolor="lightgray",fontname="Helvetica"]
+  v3 [label="failed\n(final)",shape="doublecircle",style="filled",fillcolor="lightgray",fontname="Helvetica"]
+
+  v0 -> v2 [label="success"]
+  v1 -> v0 [label="start"]
+
+}

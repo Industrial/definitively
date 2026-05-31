@@ -27,6 +27,8 @@ defmodule Definitively.Nodes.MaestroTest do
     state = RunState.load(tmp)
     assert state["plan_file"] == plan
     assert state["spec_path"] == ".maestro/specs/demo.md"
+    assert RunState.get(tmp, "plan_file") == plan
+    assert RunState.load_sealed(tmp)["spec_path"] == ".maestro/specs/demo.md"
   end
 
   test "rejects non-maestro nodes" do

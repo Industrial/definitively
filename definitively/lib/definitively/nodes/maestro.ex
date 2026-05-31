@@ -47,10 +47,13 @@ defmodule Definitively.Nodes.Maestro do
         state = RunState.load(cwd)
         slug = slug_from_plan(state["plan_file"])
 
-        RunState.put(cwd, %{
+        attrs = %{
           "spec_path" => ".maestro/specs/#{slug}.md",
           "decompose_file" => ".definitively/state/#{slug}-decompose.json"
-        })
+        }
+
+        RunState.put(cwd, attrs)
+        RunState.seal(cwd, Map.merge(%{"plan_file" => state["plan_file"]}, attrs))
 
         {:ok, %RawResult{exit_code: 0, stdout: "", data: RunState.load(cwd)}}
 
@@ -99,9 +102,24 @@ defmodule Definitively.Nodes.Maestro do
             {signals, data} =
               MaestroAction.parse_result(node.action, raw.exit_code || 1, raw.stdout, cwd)
 
-            {:ok, %{raw | signals: Map.merge(raw.signals, signals), data: data}}
+            exit_code = effective_exit_code(raw.exit_code, signals)
+
+            {:ok,
+             %{
+               raw
+               | exit_code: exit_code,
+                 signals: Map.merge(raw.signals, signals),
+                 data: data
+             }}
         end
     end
+  end
+
+  defp effective_exit_code(exit_code, signals) do
+    parse_failed? =
+      Map.get(signals, :parse_failed) == true or Map.get(signals, "parse_failed") == true
+
+    if parse_failed?, do: 1, else: exit_code || 0
   end
 
   defp slug_from_plan(plan_file) do

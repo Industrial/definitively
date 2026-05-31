@@ -20,8 +20,8 @@ defmodule Definitively.Domain.MaestroActionTest do
     assert {:ok, :init_run} = MaestroAction.build_argv(:init_run, %{}, tmp)
   end
 
-  test "task_claim_next uses mission_id from state", %{tmp: tmp} do
-    :ok = RunState.put(tmp, %{"mission_id" => "pln-test-123"})
+  test "task_claim_next uses mission_id from sealed state", %{tmp: tmp} do
+    :ok = RunState.seal(tmp, %{"mission_id" => "pln-test-123"})
 
     assert {:ok, {:claim_next, "pln-test-123"}} =
              MaestroAction.build_argv(:task_claim_next, %{}, tmp)
@@ -55,6 +55,27 @@ defmodule Definitively.Domain.MaestroActionTest do
 
     assert signals[:has_tasks]
     assert data["task_id"] == "tsk-abc"
-    assert RunState.load(tmp)["task_id"] == "tsk-abc"
+    assert RunState.get(tmp, "task_id") == "tsk-abc"
+  end
+
+  test "mission_from_spec parse failure signals parse_failed", %{tmp: tmp} do
+    {signals, data} = MaestroAction.parse_result(:mission_from_spec, 0, "no mission here", tmp)
+
+    assert signals[:parse_failed]
+    assert data["error"] =~ "mission_id"
+    refute RunState.get(tmp, "mission_id")
+  end
+
+  test "mission_from_spec stores and seals mission_id", %{tmp: tmp} do
+    :ok = RunState.seal(tmp, %{"spec_path" => ".maestro/specs/foo.md"})
+
+    {_signals, data} =
+      MaestroAction.parse_result(:mission_from_spec, 0, "pln-test-999 approved (foo)", tmp)
+
+    assert data["mission_id"] == "pln-test-999"
+    assert RunState.get(tmp, "mission_id") == "pln-test-999"
+
+    File.write!(RunState.path(tmp), "{}")
+    assert RunState.get(tmp, "mission_id") == "pln-test-999"
   end
 end

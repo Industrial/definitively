@@ -96,27 +96,24 @@ defmodule Definitively.Domain.MaestroAction do
   def parse_result(:mission_from_spec, 0, stdout, workspace) do
     case extract_id(stdout, ~r/(pln-[a-z0-9-]+)/) do
       {:ok, mission_id} ->
-        spec_path = RunState.load(workspace)["spec_path"]
+        spec_path = RunState.get(workspace, "spec_path")
 
-        RunState.put(workspace, %{
-          "mission_id" => mission_id,
-          "spec_path" => spec_path
-        })
+        RunState.put(workspace, %{"mission_id" => mission_id, "spec_path" => spec_path})
+        RunState.seal(workspace, %{"mission_id" => mission_id, "spec_path" => spec_path})
 
         {%{}, %{"mission_id" => mission_id}}
 
       :error ->
-        {%{}, %{}}
+        {put_signal(%{}, :parse_failed, true),
+         %{"error" => "mission_id not found in maestro mission from-spec stdout"}}
     end
   end
 
   def parse_result(:task_claim_next, 0, _stdout, workspace) do
-    state = RunState.load(workspace)
-
-    case state["task_id"] do
+    case RunState.get(workspace, "task_id") do
       id when is_binary(id) and id != "" ->
         {put_signal(%{}, :has_tasks, true),
-         %{"has_tasks" => true, "task_id" => id, "task_slug" => state["task_slug"]}}
+         %{"has_tasks" => true, "task_id" => id, "task_slug" => RunState.get(workspace, "task_slug")}}
 
       _ ->
         {put_signal(%{}, :no_tasks, true), %{"has_tasks" => false}}
@@ -193,11 +190,14 @@ defmodule Definitively.Domain.MaestroAction do
 
     case runner.("maestro", claim_argv, cd: workspace, timeout_ms: 120_000) do
       {:ok, %{exit_code: 0} = raw} ->
-        RunState.put(workspace, %{
+        attrs = %{
           "mission_id" => mission_id,
           "task_id" => task_id,
           "task_slug" => slug
-        })
+        }
+
+        RunState.put(workspace, attrs)
+        RunState.seal(workspace, attrs)
 
         signals = put_signal(%{}, :has_tasks, true)
 
@@ -218,18 +218,15 @@ defmodule Definitively.Domain.MaestroAction do
   end
 
   defp require_path(opts, workspace, key, label) do
-    state = RunState.load(workspace)
-
     path =
-      Map.get(opts, key) || Map.get(opts, String.to_atom(key)) || state[key] ||
-        state[String.to_atom(key)]
+      Map.get(opts, key) || Map.get(opts, String.to_atom(key)) || RunState.get(workspace, key)
 
     cond do
       is_binary(path) and path != "" ->
         {:ok, Path.expand(path, workspace)}
 
-      key == "spec_path" and is_binary(state["plan_file"]) ->
-        slug = slug_from_plan(state["plan_file"])
+      key == "spec_path" and is_binary(RunState.get(workspace, "plan_file")) ->
+        slug = slug_from_plan(RunState.get(workspace, "plan_file"))
         {:ok, Path.expand(".maestro/specs/#{slug}.md", workspace)}
 
       true ->
@@ -238,8 +235,7 @@ defmodule Definitively.Domain.MaestroAction do
   end
 
   defp require_state_or_opt(opts, workspace, key) do
-    state = RunState.load(workspace)
-    value = Map.get(opts, key) || Map.get(opts, String.to_atom(key)) || state[key]
+    value = Map.get(opts, key) || Map.get(opts, String.to_atom(key)) || RunState.get(workspace, key)
 
     if is_binary(value) and value != "" do
       {:ok, value}
