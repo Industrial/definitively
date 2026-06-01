@@ -1,5 +1,5 @@
 defmodule Definitively.Nodes.GitTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
 
   alias Definitively.Domain.NodeDefinition
   alias Definitively.Nodes.Git
@@ -39,6 +39,59 @@ defmodule Definitively.Nodes.GitTest do
     ctx = %RunContext{run_id: "t", workspace_root: tmp, env: %{}}
     assert {:ok, raw} = Git.execute(node, ctx)
     assert raw.exit_code == 0
+  end
+
+  test "returns timed_out raw without parsing", %{tmp: tmp} do
+    real_git = System.find_executable("git")
+    bin = Path.join(tmp, "bin")
+    File.mkdir_p!(bin)
+    wrapper = Path.join(bin, "git")
+
+    File.write!(
+      wrapper,
+      ~s(#!/bin/sh
+if [ "$1" = "status" ]; then sleep 60; exit 0; fi
+exec ) <> real_git <> ~s( "$@"
+)
+    )
+
+    File.chmod!(wrapper, 0o755)
+    prev = System.get_env("PATH") || ""
+    System.put_env("PATH", bin <> ":" <> prev)
+    on_exit(fn -> System.put_env("PATH", prev) end)
+
+    node = %NodeDefinition{
+      id: :status,
+      kind: :git,
+      action: :status,
+      timeout_ms: 50,
+      outcome: %{}
+    }
+
+    ctx = %RunContext{run_id: "t", workspace_root: tmp, env: %{}}
+    assert {:ok, raw} = Git.execute(node, ctx)
+    assert raw.timed_out
+    assert raw.signals == %{}
+  end
+
+  test "expands relative cwd under workspace root", %{tmp: tmp} do
+    sub = Path.join(tmp, "nested")
+    File.mkdir_p!(sub)
+    real_git = System.find_executable("git")
+    System.cmd(real_git, ["init", "-b", "main"], cd: sub, stderr_to_stdout: true)
+
+    node = %NodeDefinition{
+      id: :status,
+      kind: :git,
+      action: :status,
+      cwd: ".",
+      outcome: %{}
+    }
+
+    ctx = %RunContext{run_id: "t", workspace_root: sub, env: %{}}
+    assert {:ok, raw} = Git.execute(node, ctx)
+    assert raw.exit_code == 0
+    assert raw.signals[:clean]
   end
 
   test "rejects non-git nodes" do

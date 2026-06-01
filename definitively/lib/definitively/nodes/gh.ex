@@ -51,6 +51,7 @@ defmodule Definitively.Nodes.Gh do
            ) do
       {:ok, enrich(node, merge_stdout(list_raw, watch_raw))}
     else
+      {:ok, {:timed_out, raw}} -> {:ok, raw}
       {:ok, raw} -> {:ok, enrich(node, raw)}
       {:error, _} = err -> err
     end
@@ -58,6 +59,7 @@ defmodule Definitively.Nodes.Gh do
 
   defp run_gh(node, argv, cwd, timeout_ms) do
     case CmdExec.run_argv("gh", argv, cd: cwd, timeout_ms: timeout_ms) do
+      {:ok, {:timed_out, raw}} -> {:ok, raw}
       {:ok, raw} -> {:ok, enrich(node, raw)}
       {:error, _} = err -> err
     end

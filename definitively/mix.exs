@@ -12,10 +12,10 @@ defmodule Definitively.MixProject do
       build_embedded: Mix.env() == :prod,
       description: "FSM workflow orchestrator for CLI, git, GitHub, and LLM tasks",
       test_coverage: [
-        tool: LcovEx,
+        tool: Definitively.TestCoverage,
         output: "cover",
-        summary: [threshold: 90],
-        ignore_modules: [Definitively.CLI]
+        summary: [threshold: 95],
+        ignore_modules: [Definitively.CLI, Definitively.TestCoverage]
       ],
       docs: docs(),
       package: package(),

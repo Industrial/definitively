@@ -131,4 +131,44 @@ defmodule Definitively.VisualizeTest do
 
     fun.(program, tmp)
   end
+  test "render returns loader error for missing program" do
+    assert {:error, %Definitively.Spec.Error{}} = Visualize.render("/missing/program.yml")
+  end
+
+  test "cli_render single format returns loader error message" do
+    with_workspace_program(@fixture, fn program, _workspace ->
+      File.write!(program, "program: bad")
+
+      assert {:error, _message} = Visualize.cli_render(program, ["--format", "dot"])
+    end)
+  end
+  test "cli_render default mode returns loader error message" do
+    path = Path.join(System.tmp_dir!(), "viz-bad-#{System.unique_integer()}.yml")
+    File.write!(path, "not: yaml program")
+
+    tmp = Path.join(System.tmp_dir!(), "viz-ws-#{System.unique_integer()}")
+    programs = Path.join([tmp, ".definitively", "programs"])
+    File.mkdir_p!(programs)
+    program = Path.join(programs, "bad.yml")
+    File.cp!(path, program)
+    on_exit(fn -> File.rm_rf(tmp) end)
+
+    prev = System.get_env("DEFINITIVELY_WORKSPACE")
+    System.put_env("DEFINITIVELY_WORKSPACE", tmp)
+
+    on_exit(fn ->
+      case prev do
+        nil -> System.delete_env("DEFINITIVELY_WORKSPACE")
+        v -> System.put_env("DEFINITIVELY_WORKSPACE", v)
+      end
+    end)
+
+    assert {:error, _message} = Visualize.cli_render(program, [])
+  end
+
+  test "output_base nil uses program basename" do
+    assert {:ok, dot} = Visualize.render(@fixture, format: :dot, out: nil)
+    assert is_binary(dot)
+  end
+
 end

@@ -76,4 +76,9 @@ defmodule Definitively.MCPServer do
   defp reply({:error, err}, frame) do
     {:error, Error.execution(Jason.encode!(err, pretty: true)), frame}
   end
+
+  @doc false
+  @spec format_tool_reply({:ok, map()} | {:error, map()}, Frame.t()) ::
+          {:reply, term(), Frame.t()} | {:error, term(), Frame.t()}
+  def format_tool_reply(result, frame), do: reply(result, frame)
 end

@@ -147,4 +147,203 @@ defmodule Definitively.Spec.LoaderTest do
   end
 
   defp fixture(name), do: Path.expand("../../fixtures/#{name}", __DIR__)
+  test "accepts empty inputs map" do
+    path = write_program!("""
+    program:
+      id: empty_inputs
+      version: 1
+      initial: idle
+      inputs: {}
+    states:
+      idle:
+        type: final
+    nodes: {}
+    """)
+
+    assert {:ok, %Program{inputs: %{}}} = Loader.load(path)
+  end
+
+  test "returns error when inputs is not a map" do
+    path = write_program!("""
+    program:
+      id: bad_inputs
+      version: 1
+      initial: idle
+      inputs: []
+    states:
+      idle:
+        type: final
+    nodes: {}
+    """)
+
+    assert {:error, %{reason: :invalid_inputs}} = Loader.load(path)
+  end
+
+  test "returns error when input definition is not a map" do
+    path = write_program!("""
+    program:
+      id: bad_input_def
+      version: 1
+      initial: idle
+      inputs:
+        plan_file: not-a-map
+    states:
+      idle:
+        type: final
+    nodes: {}
+    """)
+
+    assert {:error, %{reason: :invalid_input}} = Loader.load(path)
+  end
+
+  test "returns error for invalid input type" do
+    path = write_program!("""
+    program:
+      id: bad_input_type
+      version: 1
+      initial: idle
+      inputs:
+        x:
+          type: integer
+    states:
+      idle:
+        type: final
+    nodes: {}
+    """)
+
+    assert {:error, %{reason: :invalid_input_type}} = Loader.load(path)
+  end
+
+  test "returns error when required input declares default" do
+    path = write_program!("""
+    program:
+      id: bad_input_default
+      version: 1
+      initial: idle
+      inputs:
+        plan_file:
+          type: path
+          required: true
+          default: /tmp/plan.md
+    states:
+      idle:
+        type: final
+    nodes: {}
+    """)
+
+    assert {:error, %{reason: :invalid_input_default}} = Loader.load(path)
+  end
+
+  test "returns error for invalid agent field type" do
+    path = write_program!("""
+    program:
+      id: bad_agent
+      version: 1
+      initial: idle
+    states:
+      idle:
+        type: active
+        node: n
+        on:
+          success: done
+      done:
+        type: final
+    nodes:
+      n:
+        kind: llm
+        agent: 123
+        outcome:
+          success:
+            - exit_code: 0
+    """)
+
+    assert {:error, %{reason: :invalid_agent}} = Loader.load(path)
+  end
+
+  test "returns error for invalid action field type" do
+    path = write_program!("""
+    program:
+      id: bad_action
+      version: 1
+      initial: idle
+    states:
+      idle:
+        type: active
+        node: n
+        on:
+          success: done
+      done:
+        type: final
+    nodes:
+      n:
+        kind: git
+        action: 123
+        outcome:
+          success:
+            - exit_code: 0
+    """)
+
+    assert {:error, %{reason: :invalid_action}} = Loader.load(path)
+  end
+
+  test "returns error for invalid options field type" do
+    path = write_program!("""
+    program:
+      id: bad_options
+      version: 1
+      initial: idle
+    states:
+      idle:
+        type: active
+        node: n
+        on:
+          success: done
+      done:
+        type: final
+    nodes:
+      n:
+        kind: gh
+        action: status
+        options: not-a-map
+        outcome:
+          success:
+            - exit_code: 0
+    """)
+
+    assert {:error, %{reason: :invalid_options}} = Loader.load(path)
+  end
+
+  test "normalizes unknown outcome predicate keys" do
+    path = write_program!("""
+    program:
+      id: custom_pred
+      version: 1
+      initial: idle
+    states:
+      idle:
+        type: active
+        node: n
+        on:
+          success: done
+      done:
+        type: final
+    nodes:
+      n:
+        kind: cli
+        command: ["true"]
+        outcome:
+          success:
+            - custom_flag: true
+    """)
+
+    assert {:ok, program} = Loader.load(path)
+    assert [%{custom_flag: true}] = program.nodes[:n].outcome[:success]
+  end
+
+  defp write_program!(yaml) do
+    path = Path.join(System.tmp_dir!(), "def-spec-#{System.unique_integer()}.yml")
+    File.write!(path, yaml)
+    on_exit(fn -> File.rm(path) end)
+    path
+  end
 end

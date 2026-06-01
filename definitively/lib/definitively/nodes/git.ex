@@ -19,7 +19,7 @@ defmodule Definitively.Nodes.Git do
       Log.debug("git node execute", node_id: node.id, action: node.action, cwd: cwd)
 
       case CmdExec.run_argv("git", argv, cd: cwd, timeout_ms: timeout_ms) do
-        {:ok, %RawResult{timed_out: true} = raw} ->
+        {:ok, {:timed_out, raw}} ->
           {:ok, raw}
 
         {:ok, %RawResult{} = raw} ->

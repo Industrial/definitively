@@ -49,4 +49,54 @@ defmodule Definitively.CLI.InputParserTest do
     program = %Program{id: "x", version: 1, initial: :idle, states: %{}, nodes: %{}}
     assert {:ok, %{}} = InputParser.parse([], program, "/tmp")
   end
+
+  test "help_lines for program without inputs" do
+    program = %Program{id: "x", version: 1, initial: :idle, states: %{}, nodes: %{}}
+    assert InputParser.help_lines(program) == ["  (no declared inputs)"]
+  end
+
+  test "rejects duplicate flags" do
+    program = %Program{
+      id: "x",
+      version: 1,
+      initial: :idle,
+      states: %{},
+      nodes: %{},
+      inputs: %{plan_file: %ProgramInput{name: :plan_file, type: :path, required: true}}
+    }
+
+    assert {:error, {:duplicate_flag, "--plan-file"}} =
+             InputParser.parse(["--plan-file", "a", "--plan-file", "b"], program, "/tmp")
+  end
+
+  test "rejects flag missing value" do
+    program = %Program{
+      id: "x",
+      version: 1,
+      initial: :idle,
+      states: %{},
+      nodes: %{},
+      inputs: %{plan_file: %ProgramInput{name: :plan_file, type: :path, required: true}}
+    }
+
+    assert {:error, {:missing_value, "--plan-file"}} =
+             InputParser.parse(["--plan-file"], program, "/tmp")
+  end
+
+  test "rejects flag followed by another flag" do
+    program = %Program{
+      id: "x",
+      version: 1,
+      initial: :idle,
+      states: %{},
+      nodes: %{},
+      inputs: %{
+        plan_file: %ProgramInput{name: :plan_file, type: :path, required: true},
+        agent: %ProgramInput{name: :agent, type: :string, required: false}
+      }
+    }
+
+    assert {:error, {:missing_value, "--plan-file"}} =
+             InputParser.parse(["--plan-file", "--agent", "x"], program, "/tmp")
+  end
 end

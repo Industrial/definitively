@@ -61,4 +61,52 @@ defmodule Definitively.Domain.PredicateTest do
     refute Predicate.matches?(%{unknown: true}, raw)
     refute Predicate.matches?(%{exit_code: "bad"}, raw)
   end
+
+  test "jq on data map and stdout" do
+    assert Predicate.matches?(
+             %{jq: ~s(.status == "ok")},
+             %RawResult{data: %{"status" => "ok"}}
+           )
+
+    assert Predicate.matches?(
+             %{jq: ~s(.state == "OPEN")},
+             %RawResult{data: %{state: "OPEN"}}
+           )
+
+    assert Predicate.matches?(
+             %{jq: ~s(.conclusion == "success")},
+             %RawResult{stdout: ~s({"conclusion":"success"})}
+           )
+
+    refute Predicate.matches?(
+             %{jq: ~s(.conclusion == "success")},
+             %RawResult{stdout: ""}
+           )
+
+    refute Predicate.matches?(
+             %{jq: ~s(.conclusion == "success")},
+             %RawResult{stdout: "not-json"}
+           )
+  end
+
+  test "jq on llm_json accepts atom keys" do
+    assert Predicate.matches?(
+             %{jq: ~s(.status == "ok")},
+             %RawResult{llm_json: %{status: "ok"}}
+           )
+
+    assert Predicate.matches?(
+             %{jq: ~s(.state == "OPEN")},
+             %RawResult{llm_json: %{state: "OPEN"}}
+           )
+
+    assert Predicate.matches?(
+             %{jq: ~s(.conclusion == "success")},
+             %RawResult{llm_json: %{conclusion: "success"}}
+           )
+  end
+
+  test "jq clause without json source does not match" do
+    refute Predicate.matches?(%{jq: ~s(.status == "ok")}, %RawResult{exit_code: 0})
+  end
 end
