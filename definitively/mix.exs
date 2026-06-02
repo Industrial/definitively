@@ -8,6 +8,7 @@ defmodule Definitively.MixProject do
       app: :definitively,
       version: "0.4.0",
       elixir: "~> 1.18",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       build_embedded: Mix.env() == :prod,
       description: "FSM workflow orchestrator for CLI, git, GitHub, and LLM tasks",
@@ -30,6 +31,9 @@ defmodule Definitively.MixProject do
       mod: {Definitively.Application, []}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
     [
