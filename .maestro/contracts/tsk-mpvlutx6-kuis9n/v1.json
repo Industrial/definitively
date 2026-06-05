@@ -1,0 +1,62 @@
+{
+	"schemaVersion": 2,
+	"id": "c-99e757",
+	"taskId": "tsk-mpvlutx6-kuis9n",
+	"repoRoot": ".",
+	"status": "locked",
+	"createdAt": "2026-06-01T23:06:08.830Z",
+	"lockedAt": "2026-06-01T23:06:08.830Z",
+	"intent": "Phase E — Outcome rules and execution (L-E1–E6)",
+	"scope": {
+		"filesExpected": ["**/*"],
+		"filesForbidden": []
+	},
+	"doneWhen": [
+		{
+			"id": "dw-bdfeba",
+			"text": "JSONL run journal under .definitively/runs/ with resume, replay, history browser, idempotent run IDs, cancel, timeout, pause/resume",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-c6372d",
+			"text": "CLI exposes status/approve/cancel/pause/resume/runs; MCP exposes workflow_start/status/approve/cancel/pause/resume + resources + HTTP transport",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-d64ccf",
+			"text": "Orchestration: max_attempts, when:, sub-workflows, parallel, choice, wait, mission meta-FSM, file triggers — each with example program + book chapter",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-03fb01",
+			"text": "Outcomes: on.unknown, any/all predicates, native jq, git/gh structured outcomes, artifacts/vars, token budgets",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-755c5a",
+			"text": "Node kinds: http, file, docker, shell, secrets, expanded git/gh/maestro, temporal/postgres/notify",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-5c7451",
+			"text": "LLM: prompt templating, multi-turn memory, tool loop, profiles, progress events, schema validation, rate limits",
+			"kind": "manual"
+		},
+		{
+			"id": "dw-f18648",
+			"text": "definitively mix.exs version 1.0.0; verify-gate.sh exit 0; mdbook build clean",
+			"kind": "manual"
+		}
+	],
+	"amendments": [],
+	"createdBy": "maestro",
+	"lockedBy": "maestro",
+	"configSnapshot": {
+		"strict": false,
+		"overlapPolicy": "annotate",
+		"rebaseFallback": "best-effort",
+		"staleReclaimContractPolicy": "inherit"
+	},
+	"missionId": "pln-mpvlusgo-452mch",
+	"riskClass": "high"
+}
