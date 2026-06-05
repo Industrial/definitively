@@ -1,6 +1,6 @@
-# Immutable benchmark definition — do not modify during autoresearch runs.
+# Immutable benchmark — statistical robustness across multiple targets.
 %{
-  target_x: 42.0,
+  targets: [10.0, 42.0, -7.5, 100.0],
   budget_seconds: 30,
-  description: "minimize (x - target_x)^2 + 0.1 * sin(x)^2"
+  description: "minimize mean_loss + 0.5 * stdev_loss across targets (lower is better)"
 }

@@ -44,3 +44,12 @@ When done, respond with JSON only:
 ```json
 {"status":"ok","signals":{"fix_complete":true}}
 ```
+
+## Statistical analysis (required before each experiment)
+
+Before editing `candidate.exs`, analyze `results.tsv`:
+
+1. Compare **keep** vs **discard** rows and metric trends.
+2. Note whether high metrics cluster on specific targets (variance / landscape).
+3. Propose **one new functionality** grounded in the data (adaptive step, momentum, Newton, restarts, robust aggregation).
+4. Record hypothesis + expected effect in `experiment.desc`.
