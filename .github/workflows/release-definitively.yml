@@ -33,7 +33,7 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
-          mix test --cover
+          mix test --cover --exclude escript
       - name: Validate Hex package tarball
         working-directory: definitively
         run: mix hex.build
@@ -64,6 +64,12 @@ jobs:
           mix local.hex --force
           mix deps.get --only prod
           MIX_ENV=prod mix escript.build
+      - name: Verify escript init
+        working-directory: definitively
+        run: |
+          tmp="$(mktemp -d)"
+          (cd "${tmp}" && "${{ github.workspace }}/definitively/definitively" init)
+          test -f "${tmp}/.definitively/programs/example.yml"
       - name: Stage release tarball
         env:
           PLATFORM: ${{ matrix.platform }}

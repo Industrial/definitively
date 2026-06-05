@@ -26,7 +26,7 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
-          mix test --cover
+          mix test --cover --exclude escript
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:

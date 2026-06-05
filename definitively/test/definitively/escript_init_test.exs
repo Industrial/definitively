@@ -1,6 +1,8 @@
 defmodule Definitively.EscriptInitTest do
   use ExUnit.Case, async: false
 
+  @moduletag :escript
+
   @project_dir Path.expand("../..", __DIR__)
   @escript Path.join(@project_dir, "definitively")
 
