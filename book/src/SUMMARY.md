@@ -29,6 +29,7 @@
 # Part IV — Patterns
 
 - [Case study: dev quality loop](./patterns/dev-quality-loop.md)
+- [Autoresearch loop](./patterns/autoresearch.md)
 - [Git and GitHub automation](./patterns/git-gh-automation.md)
 - [Git hook integration](./patterns/hook-integration.md)
 - [Retry and fix loops](./patterns/retry-loops.md)

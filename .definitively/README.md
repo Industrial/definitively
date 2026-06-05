@@ -80,3 +80,19 @@ See [.maestro/docs/DEFINITIVELY_INTEGRATION.md](../.maestro/docs/DEFINITIVELY_IN
 See the [Hook integration](https://industrial.github.io/definitively/patterns/hook-integration.html) book chapter.
 
 
+
+## Autoresearch loop
+
+Tier B Karpathy-style autoresearch FSM: LLM proposes edits to a single mutable file, deterministic nodes run eval, log results, and git-reset on regression.
+
+| Artifact | Purpose |
+|----------|---------|
+| [programs/autoresearch.yml](programs/autoresearch.yml) | FSM program |
+| [autoresearch/](autoresearch/) | Dogfood sandbox (`candidate.exs` + immutable `eval.exs`) |
+| [prompts/autoresearch-propose.md](prompts/autoresearch-propose.md) | Agent strategy prompt |
+
+```bash
+./.definitively/autoresearch/bin/run-autoresearch.sh my-run-tag
+```
+
+See [autoresearch/README.md](autoresearch/README.md) for sandbox details.

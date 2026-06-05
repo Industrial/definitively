@@ -1,0 +1,208 @@
+program:
+  id: autoresearch
+  version: 1
+  initial: idle
+states:
+  idle:
+    type: passive
+    on:
+      start: init_results
+  init_results:
+    type: active
+    node: init_results
+    on:
+      success: prepare_check
+      failure: failed
+  prepare_check:
+    type: active
+    node: prepare_check
+    on:
+      success: setup_branch
+      failure: failed
+  setup_branch:
+    type: active
+    node: setup_branch
+    on:
+      success: baseline
+      failure: failed
+  baseline:
+    type: active
+    node: run_experiment
+    on:
+      success: parse_baseline
+      failure: failed
+  parse_baseline:
+    type: active
+    node: parse_metrics
+    on:
+      success: save_baseline
+      failure: failed
+  save_baseline:
+    type: active
+    node: init_baseline
+    on:
+      success: propose
+      failure: failed
+  propose:
+    type: active
+    node: llm_propose
+    on:
+      success: commit
+      failure: propose
+      retry: propose
+  commit:
+    type: active
+    node: git_commit
+    on:
+      success: train
+      failure: propose
+  train:
+    type: active
+    node: run_experiment
+    on:
+      success: parse
+      failure: fix_crash
+      partial: timeout_discard
+  parse:
+    type: active
+    node: parse_metrics
+    on:
+      success: record
+      failure: fix_crash
+  record:
+    type: active
+    node: record_experiment
+    on:
+      success: propose
+      failure: discard
+      partial: discard
+  discard:
+    type: active
+    node: git_reset
+    on:
+      success: propose
+      failure: failed
+  timeout_discard:
+    type: active
+    node: git_reset
+    on:
+      success: propose
+      failure: failed
+  fix_crash:
+    type: active
+    node: llm_fix_crash
+    on:
+      success: train
+      failure: discard
+      retry: fix_crash
+  failed:
+    type: final
+nodes:
+  init_results:
+    kind: cli
+    command: ["sh", ".definitively/autoresearch/bin/init-results.sh"]
+    timeout_ms: 30000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  prepare_check:
+    kind: cli
+    command: ["sh", ".definitively/autoresearch/prepare.sh"]
+    timeout_ms: 60000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  setup_branch:
+    kind: cli
+    command: ["sh", ".definitively/autoresearch/bin/setup-branch.sh"]
+    timeout_ms: 60000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  run_experiment:
+    kind: cli
+    command: ["sh", ".definitively/autoresearch/bin/run-experiment.sh"]
+    timeout_ms: 120000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+      partial:
+        - timeout: true
+  parse_metrics:
+    kind: cli
+    command: ["sh", ".definitively/autoresearch/bin/parse-metrics.sh"]
+    timeout_ms: 30000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  init_baseline:
+    kind: cli
+    command: ["sh", ".definitively/autoresearch/bin/init-baseline.sh"]
+    timeout_ms: 30000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  record_experiment:
+    kind: cli
+    command: ["sh", ".definitively/autoresearch/bin/record-experiment.sh"]
+    timeout_ms: 30000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: 1
+      partial:
+        - exit_code: 2
+  git_commit:
+    kind: git
+    action: commit
+    options:
+      message: "autoresearch: experiment"
+      add:
+        - .definitively/autoresearch/candidate.exs
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  git_reset:
+    kind: cli
+    command: ["git", "reset", "--hard", "HEAD~1"]
+    timeout_ms: 30000
+    outcome:
+      success:
+        - exit_code: 0
+      failure:
+        - exit_code: {neq: 0}
+  llm_propose:
+    kind: llm
+    agent: cursor
+    model: auto
+    prompt_file: .definitively/prompts/autoresearch-propose.md
+    timeout_ms: 3600000
+    outcome: &llm_outcome
+      success:
+        - jq: '.status == "ok"'
+        - signal: fix_complete
+      failure:
+        - timeout: true
+        - signal: refused
+  llm_fix_crash:
+    kind: llm
+    agent: cursor
+    model: auto
+    prompt_file: .definitively/prompts/autoresearch-fix-crash.md
+    timeout_ms: 3600000
+    outcome: *llm_outcome
