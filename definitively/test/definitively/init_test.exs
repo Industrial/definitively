@@ -89,4 +89,66 @@ defmodule Definitively.InitTest do
     assert output =~ "created"
     assert File.read!(program) =~ "id: example"
   end
+
+
+  test "returns templates_missing when filesystem templates are absent", %{workspace: workspace} do
+    prev = Application.get_env(:definitively, :templates_dir)
+
+    on_exit(fn ->
+      case prev do
+        nil -> Application.delete_env(:definitively, :templates_dir)
+        v -> Application.put_env(:definitively, :templates_dir, v)
+      end
+    end)
+
+    Application.put_env(:definitively, :templates_dir, "/nonexistent/definitively/templates")
+
+    assert {:error, :templates_missing} =
+             Init.run(workspace_root: workspace, templates_source: :filesystem)
+  end
+
+  test "embedded templates respect skip and force", %{workspace: workspace} do
+    assert {:ok, %{created: first, skipped: []}} =
+             Init.run(workspace_root: workspace, templates_source: :embedded)
+
+    assert {:ok, %{created: [], skipped: skipped}} =
+             Init.run(workspace_root: workspace, templates_source: :embedded)
+
+    assert length(skipped) == length(first)
+
+    program = Path.join([workspace, ".definitively", "programs", "example.yml"])
+    File.write!(program, "stale
+")
+
+    assert {:ok, %{created: _second, skipped: []}} =
+             Init.run(workspace_root: workspace, templates_source: :embedded, force: true)
+
+    assert File.read!(program) =~ "id: example"
+    refute File.read!(program) =~ "stale"
+  end
+
+  test "run uses cwd when DEFINITIVELY_WORKSPACE is unset", %{workspace: workspace} do
+    prev = System.get_env("DEFINITIVELY_WORKSPACE")
+    System.delete_env("DEFINITIVELY_WORKSPACE")
+
+    on_exit(fn ->
+      case prev do
+        nil -> :ok
+        v -> System.put_env("DEFINITIVELY_WORKSPACE", v)
+      end
+    end)
+
+    File.cd!(workspace, fn ->
+      assert {:ok, %{created: created}} = Init.run()
+      assert Enum.any?(created, &String.starts_with?(&1, workspace <> "/"))
+    end)
+  end
+  test "run uses embedded templates when priv dir is absent", %{workspace: workspace} do
+    assert {:ok, %{created: created, skipped: []}} =
+             Init.run(workspace_root: workspace, templates_source: :embedded)
+    assert created != []
+    program = Path.join([workspace, ".definitively", "programs", "example.yml"])
+    assert File.regular?(program)
+    assert File.read!(program) =~ "id: example"
+  end
 end
