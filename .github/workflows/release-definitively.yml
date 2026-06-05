@@ -22,11 +22,11 @@ jobs:
         with:
           ref: ${{ env.RELEASE_TAG }}
       - uses: erlef/setup-beam@v1
-      - name: Install graphviz
-        run: sudo apt-get update && sudo apt-get install -y graphviz
         with:
           otp-version: "27"
           elixir-version: "1.18"
+      - name: Install graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
       - name: Verify tag matches mix.exs version
         run: ./scripts/release/validate-version.sh "${{ env.RELEASE_TAG }}"
       - name: Run tests with coverage
