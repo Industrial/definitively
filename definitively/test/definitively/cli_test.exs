@@ -277,4 +277,20 @@ defmodule Definitively.CLITest do
       end
     end
   end
+
+  test "dispatch version prints package version" do
+    output = capture_io(fn -> assert :ok = CLI.dispatch(["version"]) end)
+    assert output == "definitively " <> Definitively.Version.version() <> "\n"
+  end
+
+  test "main --version prints package version without starting workflow" do
+    output = capture_io(fn -> assert :ok = CLI.main(["--version"]) end)
+    assert output == "definitively " <> Definitively.Version.version() <> "\n"
+  end
+
+  test "main -V prints package version" do
+    output = capture_io(fn -> assert :ok = CLI.main(["-V"]) end)
+    assert output == "definitively " <> Definitively.Version.version() <> "\n"
+  end
+
 end

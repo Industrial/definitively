@@ -7,12 +7,22 @@ defmodule Definitively.CLI do
   alias Definitively.MCP.Serve
   alias Definitively.Run.Coordinator
   alias Definitively.Spec.Loader
+  alias Definitively.Version
   alias Definitively.Visualize
   alias Definitively.Workspace
 
   @doc "Entry point for the definitively command-line interface."
   @spec main([String.t()]) :: :ok | no_return()
   def main(argv \\ []) do
+    if version_request?(argv) do
+      IO.puts(Version.string())
+      :ok
+    else
+      run_main(argv)
+    end
+  end
+
+  defp run_main(argv) do
     maybe_prepare_mcp_serve!(argv)
     {:ok, _} = Application.ensure_all_started(:definitively)
     Log.configure!()
@@ -48,12 +58,25 @@ defmodule Definitively.CLI do
       ["init" | rest] ->
         dispatch_init(rest)
 
+      ["version"] ->
+        dispatch_version()
+
       ["mcp", "serve"] ->
         dispatch_mcp_serve()
 
       _ ->
         :usage
     end
+  end
+
+  defp version_request?(["--version"]), do: true
+  defp version_request?(["-V"]), do: true
+  defp version_request?(["version"]), do: true
+  defp version_request?(_), do: false
+
+  defp dispatch_version do
+    IO.puts(Version.string())
+    :ok
   end
 
   defp dispatch_run(program_path, rest) do
@@ -224,6 +247,7 @@ defmodule Definitively.CLI do
   defp print_success(["run" | _]), do: IO.puts("workflow finished")
   defp print_success(["visualize" | _]), do: :ok
   defp print_success(["init" | _]), do: :ok
+  defp print_success(["version"]), do: :ok
   defp print_success(["mcp" | _]), do: :ok
   defp print_success(_), do: :ok
 
@@ -241,6 +265,7 @@ defmodule Definitively.CLI do
   defp usage do
     IO.puts(:stderr, """
     Usage:
+      definitively version
       definitively init [--force]
       definitively run </full/path/to/program.yml> [--input-flag value ...]
       definitively run --help </full/path/to/program.yml>
@@ -252,6 +277,7 @@ defmodule Definitively.CLI do
     Default visualize writes DOT and PNG to .definitively/visualizations/.
     Override workspace with DEFINITIVELY_WORKSPACE if needed.
     mcp serve speaks MCP over stdio (for Cursor); keep stdout clean — logs use stderr.
+    Global flags: --version, -V (same as `definitively version`).
     """)
   end
 end

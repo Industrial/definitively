@@ -1,11 +1,27 @@
 # Commands and flags
 
 ```text
+definitively version
+definitively --version
+  # or: definitively -V
 definitively init [--force]
 definitively run </full/path/to/program.yml> [--input-flag value ...]
 definitively run --help </full/path/to/program.yml>
 definitively visualize </full/path/to/program.yml> [--format dot|png|svg] [--out <basename>]
 ```
+
+
+## `version`
+
+Prints the installed package version (from `mix.exs` / OTP application spec).
+
+```bash
+definitively version
+definitively --version   # same output
+definitively -V           # same output
+```
+
+Example output: `definitively 0.5.0`
 
 ## `init`
 
